@@ -1,17 +1,26 @@
 import { useState, useEffect } from 'react';
-import { ViewType } from './types';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { HomeView } from './components/HomeView';
 import { TrophiesView } from './components/TrophiesView';
+import { GameDetailPage } from './components/GameDetailPage';
 import { LeaderboardView } from './components/LeaderboardView';
 import { VerificationView } from './components/VerificationView';
+import { NotFoundView } from './components/NotFoundView';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
 import { auth, onAuthStateChanged, logOut, User } from './lib/firebase';
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [pathname]);
+  return null;
+}
+
 export default function App() {
-  const [currentView, setCurrentView] = useState<ViewType>('home');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -23,22 +32,16 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const handleNavigate = (view: ViewType) => {
-    setCurrentView(view);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const handleLogOut = async () => {
     await logOut();
   };
 
   return (
     <div className="min-h-screen bg-[#0c0d12] text-gray-100 flex flex-col font-['Tajawal',sans-serif]">
+      <ScrollToTop />
       
       {/* Navbar with 3-lines menu icon, Navigation & Auth */}
       <Navbar
-        currentView={currentView}
-        onNavigate={handleNavigate}
         onToggleSidebar={() => setIsSidebarOpen(true)}
         currentUser={currentUser}
         onOpenAuth={() => setIsAuthModalOpen(true)}
@@ -49,25 +52,43 @@ export default function App() {
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        currentView={currentView}
-        onNavigate={handleNavigate}
         currentUser={currentUser}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onLogOut={handleLogOut}
       />
 
-      {/* Main Content Area */}
+      {/* Main Content Area with Dynamic Routes */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 pt-8">
-        {currentView === 'home' && (
-          <HomeView 
-            onNavigate={handleNavigate} 
-            currentUser={currentUser}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
+        <Routes>
+          {/* Home view */}
+          <Route 
+            path="/" 
+            element={
+              <HomeView 
+                currentUser={currentUser}
+                onOpenAuth={() => setIsAuthModalOpen(true)}
+              />
+            } 
           />
-        )}
-        {currentView === 'trophies' && <TrophiesView />}
-        {currentView === 'leaderboard' && <LeaderboardView onNavigate={handleNavigate} />}
-        {currentView === 'verify' && <VerificationView />}
+
+          {/* Games list view */}
+          <Route path="/games" element={<TrophiesView />} />
+
+          {/* Dynamic Route for Game Details */}
+          <Route path="/games/:slug" element={<GameDetailPage />} />
+
+          {/* Backward compatibility for /trophies */}
+          <Route path="/trophies" element={<Navigate to="/games" replace />} />
+
+          {/* Leaderboard view */}
+          <Route path="/leaderboard" element={<LeaderboardView />} />
+
+          {/* Verification view */}
+          <Route path="/verify" element={<VerificationView />} />
+
+          {/* 404 Fallback */}
+          <Route path="*" element={<NotFoundView />} />
+        </Routes>
       </main>
 
       {/* Authentication Modal (Google / Microsoft via Firebase) */}
@@ -80,7 +101,7 @@ export default function App() {
       />
 
       {/* Footer */}
-      <Footer onNavigate={handleNavigate} />
+      <Footer />
 
     </div>
   );

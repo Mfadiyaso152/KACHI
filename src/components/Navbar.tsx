@@ -1,11 +1,9 @@
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Menu, ShieldCheck, Sparkles, Gamepad2, LogIn, LogOut, User as UserIcon } from 'lucide-react';
-import { ViewType } from '../types';
 import { Logo } from './Logo';
 import { User } from '../lib/firebase';
 
 interface NavbarProps {
-  currentView: ViewType;
-  onNavigate: (view: ViewType) => void;
   onToggleSidebar: () => void;
   currentUser: User | null;
   onOpenAuth: () => void;
@@ -13,13 +11,20 @@ interface NavbarProps {
 }
 
 export function Navbar({ 
-  currentView, 
-  onNavigate, 
   onToggleSidebar, 
   currentUser, 
   onOpenAuth,
   onLogOut 
 }: NavbarProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const path = location.pathname;
+
+  const isHome = path === '/';
+  const isGames = path === '/games' || path.startsWith('/games/');
+  const isLeaderboard = path === '/leaderboard';
+  const isVerify = path === '/verify';
+
   return (
     <header className="sticky top-0 z-40 bg-[#0c0d12]/90 backdrop-blur-md border-b border-white/10 px-4 lg:px-8 py-3.5 transition-all">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -38,9 +43,9 @@ export function Navbar({
         {/* Center/Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1 bg-black/40 p-1.5 rounded-2xl border border-white/10">
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/')}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-              currentView === 'home'
+              isHome
                 ? 'bg-white text-black font-bold shadow-md'
                 : 'text-gray-300 hover:text-white hover:bg-white/5'
             }`}
@@ -48,20 +53,20 @@ export function Navbar({
             الرئيسية
           </button>
           <button
-            onClick={() => onNavigate('trophies')}
+            onClick={() => navigate('/games')}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-              currentView === 'trophies'
+              isGames
                 ? 'bg-white text-black font-bold shadow-md'
                 : 'text-gray-300 hover:text-white hover:bg-white/5'
             }`}
           >
             <Gamepad2 className="w-4 h-4" />
-            التروفيات والبلاتينيوم
+            الألعاب والتروفيات
           </button>
           <button
-            onClick={() => onNavigate('leaderboard')}
+            onClick={() => navigate('/leaderboard')}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-              currentView === 'leaderboard'
+              isLeaderboard
                 ? 'bg-white text-black font-bold shadow-md'
                 : 'text-gray-300 hover:text-white hover:bg-white/5'
             }`}
@@ -70,9 +75,9 @@ export function Navbar({
             لوحة المتصدرين
           </button>
           <button
-            onClick={() => onNavigate('verify')}
+            onClick={() => navigate('/verify')}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-              currentView === 'verify'
+              isVerify
                 ? 'bg-white text-black font-bold shadow-md'
                 : 'text-gray-300 hover:text-white hover:bg-white/5'
             }`}
@@ -114,7 +119,7 @@ export function Navbar({
           )}
 
           <div 
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/')}
             className="cursor-pointer"
             title="كاتشي KACHI"
           >

@@ -1,13 +1,11 @@
+import { useNavigate, useLocation } from 'react-router-dom';
 import { X, Gamepad2, Sparkles, ShieldCheck, Home, Award, LogIn, LogOut, User as UserIcon } from 'lucide-react';
-import { ViewType } from '../types';
 import { Logo } from './Logo';
 import { User } from '../lib/firebase';
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  currentView: ViewType;
-  onNavigate: (view: ViewType) => void;
   currentUser: User | null;
   onOpenAuth: () => void;
   onLogOut: () => void;
@@ -16,16 +14,23 @@ interface SidebarProps {
 export function Sidebar({ 
   isOpen, 
   onClose, 
-  currentView, 
-  onNavigate,
-  currentUser,
-  onOpenAuth,
-  onLogOut
+  currentUser, 
+  onOpenAuth, 
+  onLogOut 
 }: SidebarProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   if (!isOpen) return null;
 
-  const handleNav = (view: ViewType) => {
-    onNavigate(view);
+  const path = location.pathname;
+  const isHome = path === '/';
+  const isGames = path === '/games' || path.startsWith('/games/');
+  const isLeaderboard = path === '/leaderboard';
+  const isVerify = path === '/verify';
+
+  const handleNav = (targetPath: string) => {
+    navigate(targetPath);
     onClose();
   };
 
@@ -101,9 +106,9 @@ export function Sidebar({
           </div>
 
           <button
-            onClick={() => handleNav('home')}
+            onClick={() => handleNav('/')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-right font-medium transition-all cursor-pointer ${
-              currentView === 'home'
+              isHome
                 ? 'bg-white text-black font-bold shadow-lg'
                 : 'text-gray-200 hover:bg-white/5 hover:text-white'
             }`}
@@ -113,9 +118,9 @@ export function Sidebar({
           </button>
 
           <button
-            onClick={() => handleNav('trophies')}
+            onClick={() => handleNav('/games')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-right font-medium transition-all cursor-pointer ${
-              currentView === 'trophies'
+              isGames
                 ? 'bg-white text-black font-bold shadow-lg'
                 : 'text-gray-200 hover:bg-white/5 hover:text-white'
             }`}
@@ -125,9 +130,9 @@ export function Sidebar({
           </button>
 
           <button
-            onClick={() => handleNav('leaderboard')}
+            onClick={() => handleNav('/leaderboard')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-right font-medium transition-all cursor-pointer ${
-              currentView === 'leaderboard'
+              isLeaderboard
                 ? 'bg-white text-black font-bold shadow-lg'
                 : 'text-gray-200 hover:bg-white/5 hover:text-white'
             }`}
@@ -137,9 +142,9 @@ export function Sidebar({
           </button>
 
           <button
-            onClick={() => handleNav('verify')}
+            onClick={() => handleNav('/verify')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-right font-medium transition-all cursor-pointer ${
-              currentView === 'verify'
+              isVerify
                 ? 'bg-white text-black font-bold shadow-lg'
                 : 'text-gray-200 hover:bg-white/5 hover:text-white'
             }`}

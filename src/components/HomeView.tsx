@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Trophy, 
   Gamepad2, 
@@ -12,16 +13,15 @@ import {
   LogOut,
   UserCheck
 } from 'lucide-react';
-import { ViewType } from '../types';
 import { User, logOut } from '../lib/firebase';
 
 interface HomeViewProps {
-  onNavigate: (view: ViewType) => void;
   currentUser: User | null;
   onOpenAuth: () => void;
 }
 
-export function HomeView({ onNavigate, currentUser, onOpenAuth }: HomeViewProps) {
+export function HomeView({ currentUser, onOpenAuth }: HomeViewProps) {
+  const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -82,7 +82,7 @@ export function HomeView({ onNavigate, currentUser, onOpenAuth }: HomeViewProps)
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => onNavigate('verify')}
+                    onClick={() => navigate('/verify')}
                     className="px-4 py-2 rounded-xl bg-white text-black font-bold text-xs hover:bg-gray-200 transition-colors"
                   >
                     وثق حسابك بالسوني
@@ -121,16 +121,16 @@ export function HomeView({ onNavigate, currentUser, onOpenAuth }: HomeViewProps)
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
             <button
-              onClick={() => onNavigate('trophies')}
+              onClick={() => navigate('/games')}
               className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-white hover:bg-gray-100 text-black font-black text-base shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
             >
               <Trophy className="w-5 h-5" />
-              <span>استعرض التروفيات وأدلة البلاتينيوم</span>
+              <span>استعرض الألعاب وأدلة البلاتينيوم</span>
               <ArrowLeft className="w-5 h-5 mr-1" />
             </button>
 
             <button
-              onClick={() => onNavigate('verify')}
+              onClick={() => navigate('/verify')}
               className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-base transition-all cursor-pointer"
             >
               <ShieldCheck className="w-5 h-5 text-white" />
@@ -166,7 +166,7 @@ export function HomeView({ onNavigate, currentUser, onOpenAuth }: HomeViewProps)
           
           {/* Card 1 */}
           <div 
-            onClick={() => onNavigate('trophies')}
+            onClick={() => navigate('/games')}
             className="group p-8 rounded-3xl bg-[#12141c] border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer space-y-4 hover:-translate-y-1 relative overflow-hidden"
           >
             <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
@@ -176,17 +176,17 @@ export function HomeView({ onNavigate, currentUser, onOpenAuth }: HomeViewProps)
               قائمة التروفيات وأدلة البلاتينيوم
             </h3>
             <p className="text-gray-400 text-sm leading-relaxed">
-              تصفح أشهر ألعاب البلايستيشن وسلسلة رزدنت إيفل ريميك مع خطوات تفصيلية للحصول على التروفي البلاتيني بأسرع طريقة.
+              تصفح أشهر ألعاب البلايستيشن وسلسلة رزدنت إيفل ريميك مع خطوات تفصيلية وخارطة طريق للحصول على التروفي البلاتيني بأسرع طريقة.
             </p>
             <div className="flex items-center gap-1 text-white font-semibold text-sm pt-2">
-              <span>تصفح الألعاب</span>
+              <span>تصفح الألعاب (/games)</span>
               <ChevronRight className="w-4 h-4 transform rotate-180" />
             </div>
           </div>
 
           {/* Card 2 */}
           <div 
-            onClick={() => onNavigate('leaderboard')}
+            onClick={() => navigate('/leaderboard')}
             className="group p-8 rounded-3xl bg-[#12141c] border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer space-y-4 hover:-translate-y-1 relative overflow-hidden"
           >
             <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
@@ -206,7 +206,7 @@ export function HomeView({ onNavigate, currentUser, onOpenAuth }: HomeViewProps)
 
           {/* Card 3 */}
           <div 
-            onClick={() => onNavigate('verify')}
+            onClick={() => navigate('/verify')}
             className="group p-8 rounded-3xl bg-[#12141c] border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer space-y-4 hover:-translate-y-1 relative overflow-hidden"
           >
             <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:scale-110 transition-transform">

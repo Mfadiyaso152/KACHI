@@ -1,12 +1,7 @@
-import { Sparkles } from 'lucide-react';
-import { ViewType } from '../types';
+import { Link } from 'react-router-dom';
 import { Logo } from './Logo';
 
-interface FooterProps {
-  onNavigate: (view: ViewType) => void;
-}
-
-export function Footer({ onNavigate }: FooterProps) {
+export function Footer() {
   return (
     <footer className="bg-[#0c0d12] border-t border-white/10 py-12 px-4 lg:px-8 text-gray-400 text-sm">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
@@ -24,24 +19,24 @@ export function Footer({ onNavigate }: FooterProps) {
           <h4 className="font-bold text-white text-xs uppercase tracking-wider">روابط سريعة</h4>
           <ul className="space-y-2 text-xs">
             <li>
-              <button onClick={() => onNavigate('home')} className="hover:text-white transition-colors">
+              <Link to="/" className="hover:text-white transition-colors">
                 الرئيسية
-              </button>
+              </Link>
             </li>
             <li>
-              <button onClick={() => onNavigate('trophies')} className="hover:text-white transition-colors">
-                التروفيات والبلاتينيوم
-              </button>
+              <Link to="/games" className="hover:text-white transition-colors">
+                الألعاب والتروفيات (/games)
+              </Link>
             </li>
             <li>
-              <button onClick={() => onNavigate('leaderboard')} className="hover:text-white transition-colors">
+              <Link to="/leaderboard" className="hover:text-white transition-colors">
                 لوحة المتصدرين (أفضل 100)
-              </button>
+              </Link>
             </li>
             <li>
-              <button onClick={() => onNavigate('verify')} className="hover:text-white transition-colors">
-                توثيق الحساب
-              </button>
+              <Link to="/verify" className="hover:text-white transition-colors">
+                توثيق الحساب بالسوني
+              </Link>
             </li>
           </ul>
         </div>

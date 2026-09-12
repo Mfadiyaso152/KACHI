@@ -1,11 +1,9 @@
+import { useNavigate } from 'react-router-dom';
 import { Award, ShieldCheck, ArrowLeft, Users, Sparkles, Trophy } from 'lucide-react';
-import { ViewType } from '../types';
 
-interface LeaderboardViewProps {
-  onNavigate?: (view: ViewType) => void;
-}
+export function LeaderboardView() {
+  const navigate = useNavigate();
 
-export function LeaderboardView({ onNavigate }: LeaderboardViewProps) {
   return (
     <div className="space-y-12 pb-20">
       
@@ -49,7 +47,7 @@ export function LeaderboardView({ onNavigate }: LeaderboardViewProps) {
         {/* Action Button to Verification */}
         <div className="pt-2">
           <button
-            onClick={() => onNavigate?.('verify')}
+            onClick={() => navigate('/verify')}
             className="inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl bg-white hover:bg-gray-200 text-black font-black text-base transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             <ShieldCheck className="w-5 h-5 text-black" />
