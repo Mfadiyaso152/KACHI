@@ -1,6 +1,6 @@
 export function Logo({ className = "", showText = true }: { className?: string; showText?: boolean }) {
   return (
-    <div className={`flex items-center gap-2.5 select-none ${className}`}>
+    <div className={`flex items-center gap-3 select-none ${className}`}>
       {/* Circular Emblem */}
       <div className="relative w-9 h-9 md:w-10 md:h-10 bg-[#f4f4f1] rounded-full p-1.5 flex items-center justify-center shadow-md border border-gray-300 flex-shrink-0">
         <svg viewBox="0 0 100 100" className="w-full h-full text-[#111318]" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -20,12 +20,25 @@ export function Logo({ className = "", showText = true }: { className?: string; 
       </div>
 
       {showText && (
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          <span className="text-lg md:text-xl font-black text-white">كاتشي</span>
-          <span className="text-base md:text-lg font-bold text-gray-300 font-mono">KACHI</span>
+        <div className="flex items-center gap-2.5 leading-none">
+          {/* Arabic Name */}
+          <span className="text-xl md:text-2xl font-black text-white tracking-normal translate-y-[-1px]">
+            كاتشي
+          </span>
+
+          {/* Stylized English Name: KACHI with A without middle horizontal bar (KΛCHI) with strict LTR direction */}
+          <span dir="ltr" className="text-lg md:text-xl font-black text-white tracking-wider flex items-center gap-[0.5px] font-sans">
+            <span>K</span>
+            {/* Custom geometric 'A' without the middle crossbar (Λ chevron) */}
+            <span className="inline-block relative w-[13px] h-[17px] mx-[0.5px]">
+              <svg viewBox="0 0 20 26" className="w-full h-full text-white" fill="none" stroke="currentColor" strokeWidth="4.2" strokeLinecap="square" strokeLinejoin="miter">
+                <path d="M2 24 L10 3 L18 24" />
+              </svg>
+            </span>
+            <span>CHI</span>
+          </span>
         </div>
       )}
     </div>
   );
 }
-

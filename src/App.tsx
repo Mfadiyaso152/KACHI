@@ -8,6 +8,7 @@ import { GameDetailPage } from './components/GameDetailPage';
 import { LeaderboardView } from './components/LeaderboardView';
 import { VerificationView } from './components/VerificationView';
 import { AdminDashboardView } from './components/AdminDashboardView';
+import { TermsView } from './components/TermsView';
 import { NotFoundView } from './components/NotFoundView';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
@@ -123,6 +124,9 @@ export default function App() {
               <AdminDashboardView currentUserEmail={currentUser?.email} />
             } 
           />
+
+          {/* Dedicated Full Terms of Use Page */}
+          <Route path="/terms" element={<TermsView />} />
 
           {/* 404 Fallback */}
           <Route path="*" element={<NotFoundView />} />

@@ -6,22 +6,18 @@ import { Search, Trophy, Clock, AlertTriangle, Wifi, WifiOff } from 'lucide-reac
 export function TrophiesView() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
 
   const games = getAllGames();
 
   const filteredGames = games.filter((game) => {
-    const matchesSearch = 
-      game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      game.englishTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      game.genre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      game.slug.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesPlatform = 
-      selectedPlatform === 'all' ? true : 
-      game.platform.includes(selectedPlatform);
-
-    return matchesSearch && matchesPlatform;
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+    return (
+      game.title.toLowerCase().includes(query) ||
+      game.englishTitle.toLowerCase().includes(query) ||
+      game.genre.toLowerCase().includes(query) ||
+      game.slug.toLowerCase().includes(query)
+    );
   });
 
   return (
@@ -49,47 +45,13 @@ export function TrophiesView() {
         </div>
       </div>
 
-      {/* Quick stats and filters bar */}
+      {/* Quick count bar */}
       <div className="flex items-center justify-between gap-4 flex-wrap text-xs text-gray-400">
         <div className="flex items-center gap-2">
-          <span>متوفر:</span>
+          <span>متوفر في المنصة:</span>
           <span className="font-bold text-white bg-white/10 px-2.5 py-0.5 rounded-lg border border-white/10">
             {filteredGames.length} لعبة
           </span>
-        </div>
-
-        {/* Platform quick pills */}
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setSelectedPlatform('all')}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              selectedPlatform === 'all'
-                ? 'bg-white text-black font-bold'
-                : 'bg-white/5 text-gray-400 hover:text-white'
-            }`}
-          >
-            جميع المنصات
-          </button>
-          <button
-            onClick={() => setSelectedPlatform('PS5')}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              selectedPlatform === 'PS5'
-                ? 'bg-white text-black font-bold'
-                : 'bg-white/5 text-gray-400 hover:text-white'
-            }`}
-          >
-            PS5
-          </button>
-          <button
-            onClick={() => setSelectedPlatform('PS4')}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              selectedPlatform === 'PS4'
-                ? 'bg-white text-black font-bold'
-                : 'bg-white/5 text-gray-400 hover:text-white'
-            }`}
-          >
-            PS4
-          </button>
         </div>
       </div>
 

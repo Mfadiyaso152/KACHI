@@ -7,7 +7,8 @@ import {
   Award, 
   LogIn, 
   LogOut, 
-  Sliders
+  Sliders,
+  FileText
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { User } from '../lib/firebase';
@@ -200,6 +201,21 @@ export function Sidebar({
             <ShieldCheck className="w-5 h-5" />
             <div className="text-right">
               <div>توثيق الحساب</div>
+            </div>
+          </button>
+
+          {/* Terms and conditions full page link */}
+          <button
+            onClick={() => handleNav('/terms')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-right font-medium transition-all cursor-pointer ${
+              path === '/terms'
+                ? 'bg-white text-black font-bold shadow-lg'
+                : 'text-gray-200 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <FileText className="w-5 h-5" />
+            <div className="text-right">
+              <div>شروط الاستخدام</div>
             </div>
           </button>
 

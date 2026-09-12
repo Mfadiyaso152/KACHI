@@ -17,8 +17,9 @@ export interface TrophyItem {
   type: TrophyType;
   isMissable?: boolean;
   isOnline?: boolean;
-  isHidden?: boolean;
-  guide?: string;
+  isHidden?: boolean; // Spoilers support: hidden until "إظهار التفاصيل"
+  difficultyRequirement?: string; // e.g. "Hardcore", "S-Rank"
+  guide?: string; // Arabic original explanation separate from description
 }
 
 export interface RoadmapStep {
@@ -54,19 +55,13 @@ export interface GameGuide {
   steps?: TrophyStep[];
 }
 
-export interface LeaderboardUser {
-  rank: number;
-  psnId: string;
-  avatar: string;
-  city: string;
-  totalTrophies: number;
+export interface TrophyStats {
   platinum: number;
   gold: number;
   silver: number;
   bronze: number;
   level: number;
-  isVerified: boolean;
-  isTopThree?: boolean;
+  total: number;
 }
 
 export interface VerificationRequest {
@@ -74,10 +69,13 @@ export interface VerificationRequest {
   userEmail: string;
   displayName: string;
   psnId: string;
+  verificationSecret: string; // Random generated secret code shown to user & super admin
   requestedAt: string;
   status: 'pending' | 'approved' | 'rejected';
   reviewedAt?: string;
+  reviewedBy?: string;
   notes?: string;
+  trophyStats?: TrophyStats; // Submitted upon approval
 }
 
 export interface AppUserAccount {
@@ -86,10 +84,11 @@ export interface AppUserAccount {
   displayName: string;
   photoURL?: string;
   createdAt: string;
+  lastLoginAt?: string;
   isBanned: boolean;
   isVerified: boolean;
   psnId?: string;
   role: 'admin' | 'user';
+  trophyStats?: TrophyStats;
+  verificationSecret?: string;
 }
-
-export type ViewType = 'home' | 'games' | 'trophies' | 'leaderboard' | 'verify' | 'admin';

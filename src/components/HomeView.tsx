@@ -23,11 +23,6 @@ export function HomeView() {
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-white text-xs font-bold font-mono">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>النسخة التجريبية للمنصة</span>
-          </div>
-
           <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white leading-tight">
             منصة كاتشي لتروفيات البلاتينيوم <span className="text-gray-300 font-serif">勝</span>
           </h1>

@@ -44,7 +44,7 @@ export function Navbar({
     <header className="sticky top-0 z-40 bg-[#0c0d12]/90 backdrop-blur-md border-b border-white/10 px-4 lg:px-8 py-3.5 transition-all">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         
-        {/* Left side: Logo + Beta pill */}
+        {/* Left side: Logo */}
         <div className="flex items-center gap-3 md:gap-4 order-1 md:order-1">
           <div 
             onClick={() => navigate('/')}
@@ -52,11 +52,6 @@ export function Navbar({
           >
             <Logo />
           </div>
-
-          <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 border border-white/15 text-white text-[11px] font-bold font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>تجريبي (BETA)</span>
-          </span>
         </div>
 
         {/* Center/Desktop Navigation */}
