@@ -91,13 +91,15 @@ export function Navbar({
         <div className="flex items-center gap-3">
           {currentUser ? (
             <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs text-white shadow-sm">
                 {currentUser.photoURL ? (
-                  <img src={currentUser.photoURL} alt="user" className="w-5 h-5 rounded-full object-cover" />
+                  <img src={currentUser.photoURL} alt="user" className="w-5 h-5 rounded-full object-cover border border-white/20" />
                 ) : (
                   <UserIcon className="w-4 h-4 text-gray-300" />
                 )}
-                <span className="max-w-[100px] truncate">{currentUser.displayName || currentUser.email?.split('@')[0]}</span>
+                <span className="font-medium max-w-[120px] sm:max-w-[180px] truncate">
+                  مرحباً {currentUser.displayName || currentUser.email?.split('@')[0]}
+                </span>
               </div>
 
               <button

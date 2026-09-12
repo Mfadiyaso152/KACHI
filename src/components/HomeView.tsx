@@ -1,34 +1,16 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Trophy, 
   Gamepad2, 
   Award, 
   ShieldCheck, 
-  Sparkles, 
   ArrowLeft, 
   ChevronRight, 
-  CheckCircle2, 
-  LogIn, 
-  LogOut,
-  UserCheck
+  CheckCircle2
 } from 'lucide-react';
-import { User, logOut } from '../lib/firebase';
 
-interface HomeViewProps {
-  currentUser: User | null;
-  onOpenAuth: () => void;
-}
-
-export function HomeView({ currentUser, onOpenAuth }: HomeViewProps) {
+export function HomeView() {
   const navigate = useNavigate();
-  const [loggingOut, setLoggingOut] = useState(false);
-
-  const handleLogout = async () => {
-    setLoggingOut(true);
-    await logOut();
-    setLoggingOut(false);
-  };
 
   return (
     <div className="space-y-16 pb-20">
@@ -42,11 +24,6 @@ export function HomeView({ currentUser, onOpenAuth }: HomeViewProps) {
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-white text-xs font-bold">
-            <Sparkles className="w-3.5 h-3.5 text-white" />
-            <span>منصة صيادي التروفيز في المملكة العربية السعودية</span>
-          </div>
-
           <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white leading-tight">
             منصة كاتشي لتروفيات البلاتينيوم <span className="text-gray-300 font-serif">勝</span>
           </h1>
@@ -55,71 +32,7 @@ export function HomeView({ currentUser, onOpenAuth }: HomeViewProps) {
             مرحباً بك في <strong className="text-white">كاتشي (KACHI)</strong>. وجهتك الأولى لأدلة تروفيات ألعاب البلايستيشن، وتوثيق حسابات السوني، والتنافس على قائمة صائدي البلاتينيوم في المملكة.
           </p>
 
-          {/* Quick Login / User status banner inside Hero */}
-          <div className="p-4 md:p-5 rounded-2xl bg-black/40 border border-white/15 max-w-xl">
-            {currentUser ? (
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-3">
-                  {currentUser.photoURL ? (
-                    <img 
-                      src={currentUser.photoURL} 
-                      alt={currentUser.displayName || 'المستخدم'} 
-                      className="w-11 h-11 rounded-full border border-white/30 object-cover"
-                    />
-                  ) : (
-                    <div className="w-11 h-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-bold text-white">
-                      {currentUser.displayName?.[0] || 'U'}
-                    </div>
-                  )}
-                  <div>
-                    <div className="text-xs text-gray-400">مرحباً بك،</div>
-                    <div className="text-sm font-bold text-white flex items-center gap-1.5">
-                      <span>{currentUser.displayName || currentUser.email}</span>
-                      <UserCheck className="w-4 h-4 text-white" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => navigate('/verify')}
-                    className="px-4 py-2 rounded-xl bg-white text-black font-bold text-xs hover:bg-gray-200 transition-colors"
-                  >
-                    وثق حسابك بالسوني
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    disabled={loggingOut}
-                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                    title="تسجيل الخروج"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="text-sm font-bold text-white flex items-center gap-1.5">
-                    <LogIn className="w-4 h-4 text-white" />
-                    <span>تسجيل الدخول للمنصة</span>
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    سجل دخولك عبر قوقل أو مايكروسوفت لربط حسابك وتوثيقه.
-                  </p>
-                </div>
-                <button
-                  onClick={onOpenAuth}
-                  className="px-5 py-2.5 rounded-xl bg-white hover:bg-gray-200 text-black font-bold text-xs transition-all shadow-md flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer"
-                >
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>تسجيل الدخول</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4 pt-2">
+          <div className="flex flex-wrap items-center gap-4 pt-4">
             <button
               onClick={() => navigate('/games')}
               className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-white hover:bg-gray-100 text-black font-black text-base shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"

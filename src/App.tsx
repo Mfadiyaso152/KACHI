@@ -61,15 +61,7 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 pt-8">
         <Routes>
           {/* Home view */}
-          <Route 
-            path="/" 
-            element={
-              <HomeView 
-                currentUser={currentUser}
-                onOpenAuth={() => setIsAuthModalOpen(true)}
-              />
-            } 
-          />
+          <Route path="/" element={<HomeView />} />
 
           {/* Games list view */}
           <Route path="/games" element={<TrophiesView />} />
