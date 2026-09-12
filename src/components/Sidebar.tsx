@@ -1,7 +1,17 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { X, Gamepad2, Sparkles, ShieldCheck, Home, Award, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { 
+  X, 
+  Gamepad2, 
+  ShieldCheck, 
+  Home, 
+  Award, 
+  LogIn, 
+  LogOut, 
+  Sliders
+} from 'lucide-react';
 import { Logo } from './Logo';
 import { User } from '../lib/firebase';
+import { ADMIN_EMAIL } from '../lib/adminStore';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -9,6 +19,7 @@ interface SidebarProps {
   currentUser: User | null;
   onOpenAuth: () => void;
   onLogOut: () => void;
+  isUserVerified?: boolean;
 }
 
 export function Sidebar({ 
@@ -16,7 +27,8 @@ export function Sidebar({
   onClose, 
   currentUser, 
   onOpenAuth, 
-  onLogOut 
+  onLogOut,
+  isUserVerified = false
 }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,6 +40,9 @@ export function Sidebar({
   const isGames = path === '/games' || path.startsWith('/games/');
   const isLeaderboard = path === '/leaderboard';
   const isVerify = path === '/verify';
+  const isAdmin = path === '/admin';
+
+  const isCurrentAdmin = currentUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const handleNav = (targetPath: string) => {
     navigate(targetPath);
@@ -42,15 +57,18 @@ export function Sidebar({
         onClick={onClose}
       />
 
-      {/* Drawer */}
-      <div className="absolute inset-y-0 left-0 max-w-xs w-full bg-[#12141c] border-r border-white/10 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
+      {/* Drawer opening from RIGHT */}
+      <div className="absolute inset-y-0 right-0 max-w-xs w-full bg-[#12141c] border-l border-white/10 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
         
         {/* Header */}
         <div className="p-5 border-b border-white/10 flex items-center justify-between bg-[#161922]">
-          <Logo />
+          <div onClick={() => handleNav('/')} className="cursor-pointer flex items-center">
+            <Logo />
+          </div>
           <button 
             onClick={onClose}
             className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+            title="إغلاق القائمة"
           >
             <X className="w-5 h-5" />
           </button>
@@ -59,31 +77,52 @@ export function Sidebar({
         {/* User Account Strip */}
         <div className="p-4 border-b border-white/10 bg-black/30">
           {currentUser ? (
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 overflow-hidden">
-                {currentUser.photoURL ? (
-                  <img src={currentUser.photoURL} alt="user" className="w-8 h-8 rounded-full object-cover border border-white/20" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xs font-bold text-white">
-                    {currentUser.displayName?.[0] || 'U'}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 overflow-hidden">
+                  {currentUser.photoURL ? (
+                    <img src={currentUser.photoURL} alt="user" className="w-9 h-9 rounded-full object-cover border border-white/20" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xs font-bold text-white">
+                      {currentUser.displayName?.[0] || 'U'}
+                    </div>
+                  )}
+                  <div className="overflow-hidden text-right">
+                    <div className="text-xs font-bold text-white truncate flex items-center gap-1">
+                      <span>{currentUser.displayName || 'مستخدم'}</span>
+                      {isUserVerified && (
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" title="حساب موثق" />
+                      )}
+                    </div>
+                    <div className="text-[10px] text-gray-400 truncate font-mono">{currentUser.email}</div>
                   </div>
-                )}
-                <div className="overflow-hidden text-right">
-                  <div className="text-xs font-bold text-white truncate">{currentUser.displayName || 'مستخدم'}</div>
-                  <div className="text-[10px] text-gray-400 truncate">{currentUser.email}</div>
                 </div>
+
+                <button
+                  onClick={() => {
+                    onLogOut();
+                    onClose();
+                  }}
+                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  title="تسجيل الخروج"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
 
-              <button
-                onClick={() => {
-                  onLogOut();
-                  onClose();
-                }}
-                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                title="تسجيل الخروج"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+              {/* Status info - "مدير النظام" removed completely */}
+              <div className="flex items-center gap-1.5 pt-1 text-[11px]">
+                {isUserVerified ? (
+                  <span className="px-2 py-0.5 rounded-md bg-white/10 text-white font-bold border border-white/20 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" />
+                    <span>حساب موثق بالسوني</span>
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-md bg-white/5 text-gray-400 font-medium">
+                    غير موثق بالسوني بعد
+                  </span>
+                )}
+              </div>
             </div>
           ) : (
             <button
@@ -94,7 +133,7 @@ export function Sidebar({
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white text-black font-bold text-xs hover:bg-gray-200 transition-colors shadow-sm cursor-pointer"
             >
               <LogIn className="w-4 h-4" />
-              <span>تسجيل الدخول (Google / MS)</span>
+              <span>تسجيل الدخول</span>
             </button>
           )}
         </div>
@@ -102,7 +141,7 @@ export function Sidebar({
         {/* Navigation Links */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">
-            القوائم الرئيسية
+            القوائم
           </div>
 
           <button
@@ -114,9 +153,12 @@ export function Sidebar({
             }`}
           >
             <Home className="w-5 h-5" />
-            <span>الرئيسية (عن المنصة)</span>
+            <div className="text-right">
+              <div>الرئيسية</div>
+            </div>
           </button>
 
+          {/* Trophies simplified without extra clutter */}
           <button
             onClick={() => handleNav('/games')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-right font-medium transition-all cursor-pointer ${
@@ -126,9 +168,12 @@ export function Sidebar({
             }`}
           >
             <Gamepad2 className="w-5 h-5" />
-            <span>التروفيات وأدلة البلاتينيوم</span>
+            <div className="text-right">
+              <div>تروفيات</div>
+            </div>
           </button>
 
+          {/* Leaderboard */}
           <button
             onClick={() => handleNav('/leaderboard')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-right font-medium transition-all cursor-pointer ${
@@ -138,9 +183,12 @@ export function Sidebar({
             }`}
           >
             <Award className="w-5 h-5" />
-            <span>لوحة المتصدرين</span>
+            <div className="text-right">
+              <div>لوحة المتصدرين</div>
+            </div>
           </button>
 
+          {/* Verification */}
           <button
             onClick={() => handleNav('/verify')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-right font-medium transition-all cursor-pointer ${
@@ -150,8 +198,34 @@ export function Sidebar({
             }`}
           >
             <ShieldCheck className="w-5 h-5" />
-            <span>توثيق الحساب بالسوني</span>
+            <div className="text-right">
+              <div>توثيق الحساب</div>
+            </div>
           </button>
+
+          {/* ADMIN ONLY SECTION - Pure white, no gold */}
+          {isCurrentAdmin && (
+            <div className="pt-4 mt-4 border-t border-white/10 space-y-2">
+              <div className="text-[11px] font-bold text-white uppercase tracking-wider px-3 flex items-center gap-1.5">
+                <Sliders className="w-3.5 h-3.5 text-white" />
+                <span>الإدارة</span>
+              </div>
+
+              <button
+                onClick={() => handleNav('/admin')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-right font-bold transition-all cursor-pointer ${
+                  isAdmin
+                    ? 'bg-white text-black shadow-lg'
+                    : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white border border-white/10'
+                }`}
+              >
+                <Sliders className="w-5 h-5" />
+                <div className="text-right">
+                  <div>لوحة الإدارة والطلبات</div>
+                </div>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

@@ -40,18 +40,18 @@ export interface GameGuide {
   bannerImage?: string;
   difficulty: number; // 1-10
   estimatedHours: string;
-  platinumRarity: string; // e.g., "12.4%"
-  totalTrophiesCount: number;
-  platinumCount: number;
-  goldCount: number;
-  silverCount: number;
-  bronzeCount: number;
+  platinumRarity?: string;
+  totalTrophiesCount?: number;
+  platinumCount?: number;
+  goldCount?: number;
+  silverCount?: number;
+  bronzeCount?: number;
   missableTrophiesCount: number;
   onlineTrophiesCount: number;
-  description: string;
-  roadmap: RoadmapStep[];
+  description?: string;
+  roadmap?: RoadmapStep[];
   trophiesList: TrophyItem[];
-  steps: TrophyStep[]; // for backward compatibility
+  steps?: TrophyStep[];
 }
 
 export interface LeaderboardUser {
@@ -69,4 +69,27 @@ export interface LeaderboardUser {
   isTopThree?: boolean;
 }
 
-export type ViewType = 'home' | 'games' | 'trophies' | 'leaderboard' | 'verify' | 'about';
+export interface VerificationRequest {
+  id: string;
+  userEmail: string;
+  displayName: string;
+  psnId: string;
+  requestedAt: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedAt?: string;
+  notes?: string;
+}
+
+export interface AppUserAccount {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  createdAt: string;
+  isBanned: boolean;
+  isVerified: boolean;
+  psnId?: string;
+  role: 'admin' | 'user';
+}
+
+export type ViewType = 'home' | 'games' | 'trophies' | 'leaderboard' | 'verify' | 'admin';

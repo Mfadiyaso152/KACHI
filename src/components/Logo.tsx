@@ -1,8 +1,8 @@
-export function Logo({ className = "w-10 h-10", showText = true }: { className?: string; showText?: boolean }) {
+export function Logo({ className = "", showText = true }: { className?: string; showText?: boolean }) {
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      {/* Circular Emblem matching the attached image */}
-      <div className="relative w-11 h-11 bg-[#f4f4f1] rounded-full p-1.5 flex items-center justify-center shadow-md border border-gray-300">
+    <div className={`flex items-center gap-2.5 select-none ${className}`}>
+      {/* Circular Emblem */}
+      <div className="relative w-9 h-9 md:w-10 md:h-10 bg-[#f4f4f1] rounded-full p-1.5 flex items-center justify-center shadow-md border border-gray-300 flex-shrink-0">
         <svg viewBox="0 0 100 100" className="w-full h-full text-[#111318]" fill="none" xmlns="http://www.w3.org/2000/svg">
           {/* Outer Circle */}
           <circle cx="50" cy="50" r="46" stroke="currentColor" strokeWidth="6" />
@@ -20,14 +20,12 @@ export function Logo({ className = "w-10 h-10", showText = true }: { className?:
       </div>
 
       {showText && (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-1.5">
-            <span className="text-lg font-black tracking-wider text-white">KACHI</span>
-            <span className="text-base font-bold text-gray-300">كاتشي</span>
-          </div>
-          <span className="text-[10px] text-gray-400 font-mono tracking-wider">PlayStation Trophies</span>
+        <div className="flex items-center gap-2 whitespace-nowrap">
+          <span className="text-lg md:text-xl font-black text-white">كاتشي</span>
+          <span className="text-base md:text-lg font-bold text-gray-300 font-mono">KACHI</span>
         </div>
       )}
     </div>
   );
 }
+

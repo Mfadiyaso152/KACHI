@@ -5,8 +5,7 @@ import {
   Award, 
   ShieldCheck, 
   ArrowLeft, 
-  ChevronRight, 
-  CheckCircle2
+  ChevronRight
 } from 'lucide-react';
 
 export function HomeView() {
@@ -17,19 +16,24 @@ export function HomeView() {
       
       {/* Hero Section */}
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#161922] via-[#10121a] to-[#0c0d12] border border-white/10 p-8 md:p-14 shadow-2xl">
-        {/* Decorative Japanese background watermark */}
+        {/* Japanese background watermark */}
         <div className="absolute -top-10 -left-10 text-[180px] font-black text-white/5 select-none pointer-events-none font-serif">
           勝
         </div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-white text-xs font-bold font-mono">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>النسخة التجريبية للمنصة</span>
+          </div>
+
           <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white leading-tight">
             منصة كاتشي لتروفيات البلاتينيوم <span className="text-gray-300 font-serif">勝</span>
           </h1>
 
           <p className="text-base md:text-lg text-gray-300 leading-relaxed max-w-2xl">
-            مرحباً بك في <strong className="text-white">كاتشي (KACHI)</strong>. وجهتك الأولى لأدلة تروفيات ألعاب البلايستيشن، وتوثيق حسابات السوني، والتنافس على قائمة صائدي البلاتينيوم في المملكة.
+            مرحباً بك في <strong className="text-white">كاتشي (KACHI)</strong>. وجهتك لأدلة وجوائز تروفيات ألعاب البلايستيشن، وطريق البلاتينيوم مع شروحات الحصول على كل جائزة.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 pt-4">
@@ -38,33 +42,9 @@ export function HomeView() {
               className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-white hover:bg-gray-100 text-black font-black text-base shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
             >
               <Trophy className="w-5 h-5" />
-              <span>استعرض الألعاب وأدلة البلاتينيوم</span>
+              <span>استعراض تروفيات الألعاب</span>
               <ArrowLeft className="w-5 h-5 mr-1" />
             </button>
-
-            <button
-              onClick={() => navigate('/verify')}
-              className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-base transition-all cursor-pointer"
-            >
-              <ShieldCheck className="w-5 h-5 text-white" />
-              <span>توثيق حسابك بالسوني</span>
-            </button>
-          </div>
-
-          {/* Quick trust indicators */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-6 border-t border-white/10 text-sm">
-            <div className="flex items-center gap-2 text-gray-300">
-              <CheckCircle2 className="w-4 h-4 text-white flex-shrink-0" />
-              <span>أدلة بلاتينيوم خطوة بخطوة</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-300">
-              <CheckCircle2 className="w-4 h-4 text-white flex-shrink-0" />
-              <span>توثيق آمن عبر سوني PSN</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-300 col-span-2 sm:col-span-1">
-              <CheckCircle2 className="w-4 h-4 text-white flex-shrink-0" />
-              <span>تسجيل سريع عبر Firebase</span>
-            </div>
           </div>
         </div>
       </section>
@@ -72,12 +52,12 @@ export function HomeView() {
       {/* Features Overview */}
       <section className="space-y-8">
         <div className="text-center space-y-2">
-          <h2 className="text-2xl md:text-3xl font-bold text-white">مميزات منصة كاتشي</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-white">خدمات المنصة</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          {/* Card 1 */}
+          {/* Card 1: Trophies */}
           <div 
             onClick={() => navigate('/games')}
             className="group p-8 rounded-3xl bg-[#12141c] border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer space-y-4 hover:-translate-y-1 relative overflow-hidden"
@@ -86,18 +66,18 @@ export function HomeView() {
               <Gamepad2 className="w-7 h-7" />
             </div>
             <h3 className="text-xl font-bold text-white group-hover:text-gray-200 transition-colors">
-              قائمة التروفيات وأدلة البلاتينيوم
+              تروفيات
             </h3>
             <p className="text-gray-400 text-sm leading-relaxed">
-              تصفح أشهر ألعاب البلايستيشن وسلسلة رزدنت إيفل ريميك مع خطوات تفصيلية وخارطة طريق للحصول على التروفي البلاتيني بأسرع طريقة.
+              تصفح أشهر ألعاب البلايستيشن، الصعوبة، الوقت المقدر، التروفيات القابلة للفقد، وخدمة طريق البلاتينيوم لكل لعبة.
             </p>
             <div className="flex items-center gap-1 text-white font-semibold text-sm pt-2">
-              <span>تصفح الألعاب (/games)</span>
+              <span>تصفح تروفيات الألعاب</span>
               <ChevronRight className="w-4 h-4 transform rotate-180" />
             </div>
           </div>
 
-          {/* Card 2 */}
+          {/* Card 2: Leaderboard */}
           <div 
             onClick={() => navigate('/leaderboard')}
             className="group p-8 rounded-3xl bg-[#12141c] border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer space-y-4 hover:-translate-y-1 relative overflow-hidden"
@@ -106,10 +86,10 @@ export function HomeView() {
               <Award className="w-7 h-7" />
             </div>
             <h3 className="text-xl font-bold text-white group-hover:text-gray-200 transition-colors">
-              لوحة المتصدرين (أفضل 100 حساب)
+              لوحة المتصدرين
             </h3>
             <p className="text-gray-400 text-sm leading-relaxed">
-              كن من أوائل المسجلين! وثق حسابك الآن لتكون ضمن صدارة المتصدرين في حصد تروفيات البلاتينيوم على مستوى المملكة.
+              قائمة أفضل اللاعبين وصائدي تروفيات البلاتينيوم على مستوى المملكة.
             </p>
             <div className="flex items-center gap-1 text-white font-semibold text-sm pt-2">
               <span>شاهد المتصدرين</span>
@@ -117,7 +97,7 @@ export function HomeView() {
             </div>
           </div>
 
-          {/* Card 3 */}
+          {/* Card 3: Verification */}
           <div 
             onClick={() => navigate('/verify')}
             className="group p-8 rounded-3xl bg-[#12141c] border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer space-y-4 hover:-translate-y-1 relative overflow-hidden"
@@ -126,13 +106,13 @@ export function HomeView() {
               <ShieldCheck className="w-7 h-7" />
             </div>
             <h3 className="text-xl font-bold text-white group-hover:text-gray-200 transition-colors">
-              توثيق الحساب والتحقق
+              توثيق الحساب
             </h3>
             <p className="text-gray-400 text-sm leading-relaxed">
-              3 خطوات بسيطة: أدخل يوزر حسابك، أضف الحساب الرسمي في السوني، وسيتم التحقق من حسابك خلال 24 ساعة.
+              خدمة توثيق حسابات سوني PSN (معلقة ومتاحة للتجربة في النسخة الحالية).
             </p>
             <div className="flex items-center gap-1 text-white font-semibold text-sm pt-2">
-              <span>وثق حسابك الآن</span>
+              <span>صفحة التوثيق</span>
               <ChevronRight className="w-4 h-4 transform rotate-180" />
             </div>
           </div>
