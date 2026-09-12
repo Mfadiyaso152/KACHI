@@ -1,0 +1,6 @@
+{
+  "name": "KACHI كاتشي",
+  "description": "منصة الألعاب والتروفيات الأولى في السعودية - دليل البلاتينيوم ولوحة المتصدرين",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
