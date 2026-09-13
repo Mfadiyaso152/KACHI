@@ -39,14 +39,7 @@ export function LeaderboardView() {
       
       {/* Header */}
       <div className="text-center space-y-3 max-w-2xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold">
-          <Award className="w-4 h-4 text-white" />
-          <span>لوحة الشرف الوطنية</span>
-        </div>
         <h1 className="text-3xl md:text-5xl font-black text-white">لوحة المتصدرين</h1>
-        <p className="text-sm md:text-base text-gray-400">
-          ترتيب صائدي تروفيات البلاتينيوم المعتمدين في شبكة PlayStation مع الحفاظ التام على خصوصية اللاعبين.
-        </p>
       </div>
 
       {sortedUsers.length > 0 ? (

@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
+  Home,
   Menu, 
   ShieldCheck, 
   Sparkles, 
@@ -54,66 +55,72 @@ export function Navbar({
           </div>
         </div>
 
-        {/* Center/Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-1 bg-black/40 p-1.5 rounded-2xl border border-white/10 order-2">
+        {/* Center/Desktop Navigation - Icons only with rich tooltips */}
+        <nav className="hidden md:flex items-center gap-1.5 bg-black/40 p-1.5 rounded-2xl border border-white/10 order-2">
           <button
             onClick={() => navigate('/')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+            title="الرئيسية"
+            aria-label="الرئيسية"
+            className={`p-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center ${
               isHome
-                ? 'bg-white text-black font-bold shadow-md'
-                : 'text-gray-300 hover:text-white hover:bg-white/5'
+                ? 'bg-white text-black shadow-md'
+                : 'text-gray-300 hover:text-white hover:bg-white/10'
             }`}
           >
-            الرئيسية
+            <Home className="w-5 h-5" />
           </button>
           
           <button
             onClick={() => navigate('/games')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+            title="تروفيات الألعاب"
+            aria-label="تروفيات الألعاب"
+            className={`p-2.5 rounded-xl transition-all flex items-center justify-center cursor-pointer ${
               isGames
-                ? 'bg-white text-black font-bold shadow-md'
-                : 'text-gray-300 hover:text-white hover:bg-white/5'
+                ? 'bg-white text-black shadow-md'
+                : 'text-gray-300 hover:text-white hover:bg-white/10'
             }`}
           >
-            <Gamepad2 className="w-4 h-4" />
-            تروفيات
+            <Gamepad2 className="w-5 h-5" />
           </button>
 
           <button
             onClick={() => navigate('/leaderboard')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+            title="لوحة المتصدرين"
+            aria-label="لوحة المتصدرين"
+            className={`p-2.5 rounded-xl transition-all flex items-center justify-center cursor-pointer ${
               isLeaderboard
-                ? 'bg-white text-black font-bold shadow-md'
-                : 'text-gray-300 hover:text-white hover:bg-white/5'
+                ? 'bg-white text-black shadow-md'
+                : 'text-gray-300 hover:text-white hover:bg-white/10'
             }`}
           >
-            <Sparkles className="w-4 h-4" />
-            لوحة المتصدرين
+            <Sparkles className="w-5 h-5" />
           </button>
 
           <button
             onClick={() => navigate('/verify')}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+            title="توثيق الحساب بالسوني"
+            aria-label="توثيق الحساب بالسوني"
+            className={`p-2.5 rounded-xl transition-all flex items-center justify-center cursor-pointer ${
               isVerify
-                ? 'bg-white text-black font-bold shadow-md'
-                : 'text-gray-300 hover:text-white hover:bg-white/5'
+                ? 'bg-white text-black shadow-md'
+                : 'text-gray-300 hover:text-white hover:bg-white/10'
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
-            توثيق الحساب
+            <ShieldCheck className="w-5 h-5" />
           </button>
 
           {isCurrentAdmin && (
             <button
               onClick={() => navigate('/admin')}
-              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              title="لوحة الإدارة"
+              aria-label="لوحة الإدارة"
+              className={`p-2.5 rounded-xl transition-all flex items-center justify-center cursor-pointer ${
                 isAdmin
                   ? 'bg-white text-black shadow-md'
                   : 'text-gray-300 hover:text-white hover:bg-white/10'
               }`}
             >
-              <Sliders className="w-4 h-4" />
-              لوحة الإدارة
+              <Sliders className="w-5 h-5" />
             </button>
           )}
         </nav>

@@ -2,9 +2,9 @@ import { AppUserAccount, VerificationRequest, TrophyStats } from '../types';
 
 export const ADMIN_EMAIL = 'mfb.15.f@gmail.com';
 
-const USERS_STORAGE_KEY = 'kachi_all_users_v2';
-const REQUESTS_STORAGE_KEY = 'kachi_verification_requests_v2';
-const ADMIN_EMAILS_KEY = 'kachi_admin_emails_v2';
+const USERS_STORAGE_KEY = 'kachi_all_users_v3';
+const REQUESTS_STORAGE_KEY = 'kachi_verification_requests_v3';
+const ADMIN_EMAILS_KEY = 'kachi_admin_emails_v3';
 
 // Generates an unguessable 6-digit verification secret code (e.g. "KC-8492")
 export function generateRandomSecret(): string {
@@ -12,137 +12,10 @@ export function generateRandomSecret(): string {
   return `KC-${num}`;
 }
 
-// Initial sample users if none exist in localStorage
-const INITIAL_USERS: AppUserAccount[] = [
-  {
-    uid: 'admin_root',
-    email: 'mfb.15.f@gmail.com',
-    displayName: 'Hamody (المدير)',
-    photoURL: undefined,
-    createdAt: '2026-01-10T12:00:00Z',
-    lastLoginAt: '2026-09-12T10:30:00Z',
-    isBanned: false,
-    isVerified: true,
-    psnId: 'HamoDyMFB',
-    role: 'admin',
-    verificationSecret: 'KC-7721',
-    trophyStats: {
-      platinum: 64,
-      gold: 240,
-      silver: 810,
-      bronze: 2150,
-      level: 462,
-      total: 3264
-    }
-  },
-  {
-    uid: 'user_falcon_999',
-    email: 'falcon.ksa@gmail.com',
-    displayName: 'فهد الحربي',
-    createdAt: '2026-02-01T08:30:00Z',
-    lastLoginAt: '2026-09-11T16:20:00Z',
-    isBanned: false,
-    isVerified: true,
-    psnId: 'FALCON_KSA_999',
-    role: 'user',
-    verificationSecret: 'KC-4921',
-    trophyStats: {
-      platinum: 42,
-      gold: 185,
-      silver: 620,
-      bronze: 1890,
-      level: 395,
-      total: 2737
-    }
-  },
-  {
-    uid: 'user_samurai_jed',
-    email: 'jeddah.gamer@hotmail.com',
-    displayName: 'عمر الغامدي',
-    createdAt: '2026-02-14T14:15:00Z',
-    lastLoginAt: '2026-09-10T22:15:00Z',
-    isBanned: false,
-    isVerified: true,
-    psnId: 'SAMURAI_JEDDAH',
-    role: 'user',
-    verificationSecret: 'KC-3319',
-    trophyStats: {
-      platinum: 28,
-      gold: 112,
-      silver: 430,
-      bronze: 1340,
-      level: 310,
-      total: 1910
-    }
-  },
-  {
-    uid: 'user_riyadh_x',
-    email: 'sultan.ps@gmail.com',
-    displayName: 'سلطان القحطاني',
-    createdAt: '2026-03-01T10:00:00Z',
-    lastLoginAt: '2026-09-12T08:45:00Z',
-    isBanned: false,
-    isVerified: false,
-    psnId: 'RIYADH_ELITE_X',
-    role: 'user',
-    verificationSecret: 'KC-8842'
-  },
-  {
-    uid: 'user_khobar_sniper',
-    email: 'tariq.khobar@gmail.com',
-    displayName: 'طارق الشرقية',
-    createdAt: '2026-03-05T19:20:00Z',
-    lastLoginAt: '2026-09-12T09:10:00Z',
-    isBanned: false,
-    isVerified: false,
-    psnId: 'KHOBAR_SNIPER',
-    role: 'user',
-    verificationSecret: 'KC-1529'
-  }
-];
+// Initial sample users: Empty by default so only real authenticated and verified players appear
+const INITIAL_USERS: AppUserAccount[] = [];
 
-const INITIAL_REQUESTS: VerificationRequest[] = [
-  {
-    id: 'req_001',
-    userEmail: 'sultan.ps@gmail.com',
-    displayName: 'سلطان القحطاني',
-    psnId: 'RIYADH_ELITE_X',
-    verificationSecret: 'KC-8842',
-    requestedAt: '2026-09-11T14:30:00Z',
-    status: 'pending',
-    notes: 'قام بإضافة حساب HamoDyMFB بالسوني'
-  },
-  {
-    id: 'req_002',
-    userEmail: 'tariq.khobar@gmail.com',
-    displayName: 'طارق الشرقية',
-    psnId: 'KHOBAR_SNIPER',
-    verificationSecret: 'KC-1529',
-    requestedAt: '2026-09-12T05:10:00Z',
-    status: 'pending',
-    notes: 'طلب جديد للتوثيق'
-  },
-  {
-    id: 'req_003',
-    userEmail: 'falcon.ksa@gmail.com',
-    displayName: 'فهد الحربي',
-    psnId: 'FALCON_KSA_999',
-    verificationSecret: 'KC-4921',
-    requestedAt: '2026-02-01T09:00:00Z',
-    status: 'approved',
-    reviewedAt: '2026-02-01T11:00:00Z',
-    reviewedBy: ADMIN_EMAIL,
-    trophyStats: {
-      platinum: 42,
-      gold: 185,
-      silver: 620,
-      bronze: 1890,
-      level: 395,
-      total: 2737
-    },
-    notes: 'تم التحقق من الحساب وإدراجه في صدارة المتصدرين'
-  }
-];
+const INITIAL_REQUESTS: VerificationRequest[] = [];
 
 export function getStoredUsers(): AppUserAccount[] {
   try {

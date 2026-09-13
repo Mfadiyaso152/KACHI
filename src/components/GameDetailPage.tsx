@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Trophy, 
@@ -81,7 +81,7 @@ export function GameDetailPage() {
     setExpandedTrophyId(prev => prev === id ? null : id);
   };
 
-  const toggleRevealSpoiler = (e: React.MouseEvent, id: string) => {
+  const toggleRevealSpoiler = (e: MouseEvent, id: string) => {
     e.stopPropagation();
     setRevealedSpoilers(prev => ({
       ...prev,

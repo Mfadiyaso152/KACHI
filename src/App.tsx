@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { HomeView } from './components/HomeView';
@@ -29,6 +30,7 @@ function ScrollToTop() {
 }
 
 export default function App() {
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -87,50 +89,60 @@ export default function App() {
         isUserVerified={userVerified || isCurrentAdmin}
       />
 
-      {/* Main Content Area - Fully open without forced login gating */}
+      {/* Main Content Area with Page Route Transitions */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 pt-8">
-        <Routes>
-          {/* Home view - Fully open */}
-          <Route path="/" element={<HomeView />} />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <Routes location={location}>
+              {/* Home view */}
+              <Route path="/" element={<HomeView />} />
 
-          {/* Trophies list view - Fully open */}
-          <Route path="/games" element={<TrophiesView />} />
+              {/* Trophies list view */}
+              <Route path="/games" element={<TrophiesView />} />
 
-          {/* Dynamic Route for Game Details - Fully open */}
-          <Route path="/games/:slug" element={<GameDetailPage />} />
+              {/* Dynamic Route for Game Details */}
+              <Route path="/games/:slug" element={<GameDetailPage />} />
 
-          {/* Backward compatibility for /trophies */}
-          <Route path="/trophies" element={<Navigate to="/games" replace />} />
+              {/* Backward compatibility for /trophies */}
+              <Route path="/trophies" element={<Navigate to="/games" replace />} />
 
-          {/* Leaderboard view - Fully open to view */}
-          <Route path="/leaderboard" element={<LeaderboardView />} />
+              {/* Leaderboard view */}
+              <Route path="/leaderboard" element={<LeaderboardView />} />
 
-          {/* Verification view - Open to view, clicking verify triggers login if guest */}
-          <Route 
-            path="/verify" 
-            element={
-              <VerificationView 
-                currentUser={currentUser}
-                onOpenAuth={() => setIsAuthModalOpen(true)}
-                isVerified={userVerified || isCurrentAdmin}
+              {/* Verification view */}
+              <Route 
+                path="/verify" 
+                element={
+                  <VerificationView 
+                    currentUser={currentUser}
+                    onOpenAuth={() => setIsAuthModalOpen(true)}
+                    isVerified={userVerified || isCurrentAdmin}
+                  />
+                } 
               />
-            } 
-          />
 
-          {/* Admin Dashboard view - Disabled / experimental state */}
-          <Route 
-            path="/admin" 
-            element={
-              <AdminDashboardView currentUserEmail={currentUser?.email} />
-            } 
-          />
+              {/* Admin Dashboard view */}
+              <Route 
+                path="/admin" 
+                element={
+                  <AdminDashboardView currentUserEmail={currentUser?.email} />
+                } 
+              />
 
-          {/* Dedicated Full Terms of Use Page */}
-          <Route path="/terms" element={<TermsView />} />
+              {/* Dedicated Full Terms of Use Page */}
+              <Route path="/terms" element={<TermsView />} />
 
-          {/* 404 Fallback */}
-          <Route path="*" element={<NotFoundView />} />
-        </Routes>
+              {/* 404 Fallback */}
+              <Route path="*" element={<NotFoundView />} />
+            </Routes>
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Authentication Modal (Google / Microsoft via Firebase) */}

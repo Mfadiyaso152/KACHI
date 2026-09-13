@@ -78,6 +78,21 @@ export interface VerificationRequest {
   trophyStats?: TrophyStats; // Submitted upon approval
 }
 
+export interface LeaderboardUser {
+  rank: number;
+  psnId: string;
+  avatar: string;
+  city: string;
+  totalTrophies: number;
+  platinum: number;
+  gold: number;
+  silver: number;
+  bronze: number;
+  level: number;
+  isVerified: boolean;
+  isTopThree?: boolean;
+}
+
 export interface AppUserAccount {
   uid: string;
   email: string;

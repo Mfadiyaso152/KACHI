@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { 
   Users, 
   ShieldCheck, 
@@ -149,7 +149,7 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
   };
 
   // 3. Admin Management
-  const handleAddAdmin = (e: React.FormEvent) => {
+  const handleAddAdmin = (e: FormEvent) => {
     e.preventDefault();
     if (!newAdminEmail.trim()) return;
 
