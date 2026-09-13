@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Shield, ArrowRight, CheckCircle2, AlertTriangle, FileText, Lock, Scale } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FileText, Scale } from 'lucide-react';
 
 export function TermsView() {
   const navigate = useNavigate();
@@ -90,7 +90,7 @@ export function TermsView() {
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-200 hover:text-white transition-all cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--chip-bg)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] transition-all cursor-pointer"
         >
           <ArrowRight className="w-4 h-4" />
           <span>العودة للخلف</span>
@@ -98,30 +98,30 @@ export function TermsView() {
       </div>
 
       {/* Main Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-[#12141c] border border-white/15 p-8 md:p-12 shadow-2xl space-y-4 text-center md:text-right">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] p-8 md:p-12 shadow-2xl space-y-4 text-center md:text-right">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[var(--chip-bg)] rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold font-mono">
-            <Scale className="w-4 h-4 text-white" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--chip-bg)] border border-[var(--border-app)] text-[var(--text-main)] text-xs font-bold font-mono">
+            <Scale className="w-4 h-4 text-[var(--text-main)]" />
             <span>KACHI | كاتشي</span>
           </div>
 
-          <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight">
+          <h1 className="text-3xl md:text-5xl font-black text-[var(--text-main)] tracking-tight">
             شروط الاستخدام
           </h1>
 
-          <p className="text-sm md:text-base text-gray-400 max-w-2xl leading-relaxed">
+          <p className="text-sm md:text-base text-[var(--text-muted)] max-w-2xl leading-relaxed">
             الوثيقة الرسمية والضوابط المنظمة لاستخدام منصة كاتشي، توثيق الحسابات، ونزاهة بيانات تروفيات PlayStation.
           </p>
         </div>
       </div>
 
       {/* Terms Content Card */}
-      <div className="bg-[#12141c] border border-white/15 rounded-3xl p-6 md:p-10 shadow-xl space-y-6">
+      <div className="bg-[var(--bg-card)] border border-[var(--border-app)] rounded-3xl p-6 md:p-10 shadow-xl space-y-6">
         
-        <div className="flex items-center gap-2.5 pb-4 border-b border-white/10 text-xs text-gray-400 font-mono">
-          <FileText className="w-4 h-4 text-white" />
+        <div className="flex items-center gap-2.5 pb-4 border-b border-[var(--border-app)] text-xs text-[var(--text-muted)] font-mono">
+          <FileText className="w-4 h-4 text-[var(--text-main)]" />
           <span>آخر تحديث: 2026 — تنطبق هذه البنود الـ 15 على جميع الأعضاء والزوار</span>
         </div>
 
@@ -133,30 +133,30 @@ export function TermsView() {
               className={`p-5 md:p-6 rounded-2xl border transition-all ${
                 term.highlight 
                   ? 'bg-rose-500/5 border-rose-500/30 shadow-md' 
-                  : 'bg-[#161922] border-white/10 hover:border-white/20'
+                  : 'bg-[var(--chip-bg)] border-[var(--border-app)] hover:border-[var(--border-hover)]'
               }`}
             >
               <div className="flex items-start gap-4">
                 {/* Number Badge */}
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs flex-shrink-0 mt-0.5 ${
                   term.highlight 
-                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' 
-                    : 'bg-white/10 text-white border border-white/15'
+                    ? 'bg-rose-500/20 text-rose-500 dark:text-rose-300 border border-rose-500/30' 
+                    : 'bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-app)]'
                 }`}>
                   {term.number}
                 </div>
 
                 {/* Content */}
                 <div className="space-y-1.5 flex-1">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <h3 className="text-base font-bold text-[var(--text-main)] flex items-center gap-2">
                     <span>{term.title}</span>
                     {term.highlight && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-500 dark:text-rose-300 font-bold border border-rose-500/30">
                         مهم جداً
                       </span>
                     )}
                   </h3>
-                  <p className="text-xs md:text-sm text-gray-300 leading-relaxed font-sans">
+                  <p className="text-xs md:text-sm text-[var(--text-sub)] leading-relaxed font-sans">
                     {term.content}
                   </p>
                 </div>
@@ -166,15 +166,15 @@ export function TermsView() {
         </div>
 
         {/* Bottom Confirmation Footer inside card */}
-        <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 bg-black/40 p-5 rounded-2xl border">
-          <div className="flex items-center gap-2 text-xs text-gray-300">
-            <CheckCircle2 className="w-4 h-4 text-white flex-shrink-0" />
+        <div className="mt-8 pt-6 border-t border-[var(--border-app)] flex flex-col sm:flex-row items-center justify-between gap-4 bg-[var(--chip-bg)] p-5 rounded-2xl border border-[var(--border-app)]">
+          <div className="flex items-center gap-2 text-xs text-[var(--text-sub)]">
+            <CheckCircle2 className="w-4 h-4 text-[var(--text-main)] flex-shrink-0" />
             <span>باستخدامك لمنصة كاتشي، فإنك توافق التزاماً تاماً بكافة الشروط المذكورة أعلاه.</span>
           </div>
 
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-2.5 rounded-xl bg-white text-black hover:bg-gray-200 font-bold text-xs transition-colors cursor-pointer shadow-md flex-shrink-0"
+            className="px-6 py-2.5 rounded-xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:opacity-90 font-bold text-xs transition-colors cursor-pointer shadow-md flex-shrink-0"
           >
             العودة للرئيسية
           </button>
@@ -185,3 +185,4 @@ export function TermsView() {
     </div>
   );
 }
+

@@ -90,9 +90,15 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0c0d12] text-gray-100 flex flex-col font-['Tajawal',sans-serif]">
+    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] flex flex-col font-['Tajawal',sans-serif] transition-colors duration-300 relative overflow-x-hidden">
       <ScrollToTop />
       
+      {/* Background ambient light glow that the transparent navbar reflects */}
+      <div 
+        className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-80 opacity-70 blur-3xl -z-10 bg-gradient-to-b from-white/10 to-transparent dark:from-white/10 dark:to-transparent light:from-slate-300/30 light:to-transparent" 
+        aria-hidden="true" 
+      />
+
       {/* Navbar */}
       <Navbar
         onToggleSidebar={() => setIsSidebarOpen(true)}

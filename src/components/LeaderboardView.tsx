@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Award, ShieldCheck, Trophy, Search, Sparkles } from 'lucide-react';
+import { ShieldCheck, Trophy, Search, Check } from 'lucide-react';
 import { getStoredUsers, DATA_SYNC_EVENT } from '../lib/adminStore';
 
 export function LeaderboardView() {
@@ -57,37 +57,37 @@ export function LeaderboardView() {
       
       {/* Header */}
       <div className="text-center space-y-3 max-w-2xl mx-auto">
-        <h1 className="text-3xl md:text-5xl font-black text-white">لوحة المتصدرين</h1>
+        <h1 className="text-3xl md:text-5xl font-black text-[var(--text-main)]">لوحة المتصدرين</h1>
       </div>
 
       {sortedUsers.length > 0 ? (
         <div className="max-w-5xl mx-auto space-y-4">
           
           {/* Controls Bar */}
-          <div className="bg-[#12141c] border border-white/15 rounded-3xl p-4 md:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-app)] rounded-3xl p-4 md:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
             <div className="relative w-full sm:w-72">
-              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="بحث بمعرّف السوني..."
-                className="w-full bg-[#161922] border border-white/10 focus:border-white/40 rounded-xl pr-10 pl-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none transition-all font-mono"
+                className="w-full bg-[var(--input-bg)] border border-[var(--border-app)] focus:border-[var(--border-hover)] rounded-xl pr-10 pl-4 py-2 text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none transition-all font-mono"
               />
             </div>
 
             <button
               onClick={() => navigate('/verify')}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white text-black hover:bg-gray-200 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:opacity-90 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
             >
-              <ShieldCheck className="w-4 h-4 text-black" />
+              <ShieldCheck className="w-4 h-4" />
               <span>توثيق حسابك في السوني</span>
             </button>
           </div>
 
           {/* Leaderboard Table / Cards */}
-          <div className="bg-[#12141c] border border-white/15 rounded-3xl overflow-hidden shadow-2xl">
-            <div className="divide-y divide-white/5">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-app)] rounded-3xl overflow-hidden shadow-2xl">
+            <div className="divide-y divide-[var(--border-app)]">
               {filteredUsers.map((user, idx) => {
                 const stats = user.trophyStats || {
                   platinum: 0,
@@ -101,46 +101,46 @@ export function LeaderboardView() {
                 return (
                   <div 
                     key={user.uid} 
-                    className="p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors"
+                    className="p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-[var(--bg-card-hover)] transition-colors"
                   >
                     {/* Player Info with Anonymous/Private Avatar */}
                     <div className="flex items-center gap-4">
                       {/* Rank Number */}
                       <div className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-sm flex-shrink-0 ${
-                        idx === 0 ? 'bg-white text-black shadow-lg' :
-                        idx === 1 ? 'bg-gray-300 text-black' :
-                        idx === 2 ? 'bg-gray-400 text-black' :
-                        'bg-white/10 text-gray-300 border border-white/10'
+                        idx === 0 ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] shadow-lg' :
+                        idx === 1 ? 'bg-slate-300 dark:bg-slate-400 text-black' :
+                        idx === 2 ? 'bg-amber-600/30 text-[var(--text-main)] border border-amber-600/40' :
+                        'bg-[var(--chip-bg)] text-[var(--text-sub)] border border-[var(--border-app)]'
                       }`}>
                         {idx + 1}
                       </div>
 
                       {/* Anonymous Avatar for Privacy */}
-                      <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-b from-white/15 to-white/5 border border-white/20 flex items-center justify-center flex-shrink-0 text-white shadow-inner">
+                      <div className="relative w-12 h-12 rounded-2xl bg-[var(--chip-bg)] border border-[var(--border-app)] flex items-center justify-center flex-shrink-0 text-[var(--text-main)] shadow-inner">
                         {/* Masked / Incognito Anonymous Icon */}
-                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-[var(--text-sub)]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="7" r="4" />
                           <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2" />
                           <line x1="7" y1="7" x2="17" y2="7" strokeWidth="2.5" stroke="currentColor" />
                         </svg>
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border border-[#12141c] flex items-center justify-center">
-                          <Check className="w-2.5 h-2.5 text-black stroke-[3]" />
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border border-[var(--bg-card)] flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
                         </div>
                       </div>
 
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-base font-black text-white font-mono tracking-wide">
+                          <span className="text-base font-black text-[var(--text-main)] font-mono tracking-wide">
                             {user.psnId}
                           </span>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20 text-[10px] font-bold">
-                            <ShieldCheck className="w-3 h-3 text-white" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--text-main)] border border-[var(--border-app)] text-[10px] font-bold">
+                            <ShieldCheck className="w-3 h-3 text-emerald-500" />
                             <span>موثق رسمياً</span>
                           </span>
                         </div>
-                        <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
+                        <div className="text-xs text-[var(--text-sub)] flex items-center gap-2 mt-0.5">
                           <span>مستوى التروفي (PSN Level):</span>
-                          <strong className="text-white font-mono text-sm bg-white/10 px-2 py-0.5 rounded-md">
+                          <strong className="text-[var(--text-main)] font-mono text-sm bg-[var(--chip-bg)] px-2 py-0.5 rounded-md border border-[var(--border-app)]">
                             {stats.level}
                           </strong>
                         </div>
@@ -148,44 +148,44 @@ export function LeaderboardView() {
                     </div>
 
                     {/* Trophy Breakdown: Platinum, Gold, Silver, Bronze & Total */}
-                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full md:w-auto justify-start md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-white/5">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full md:w-auto justify-start md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-[var(--border-app)]">
                       
                       {/* Platinum */}
-                      <div className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 text-center min-w-[64px]">
-                        <div className="text-[10px] font-bold text-gray-300">بلاتينيوم</div>
-                        <div className="text-sm font-black text-white font-mono">
+                      <div className="px-3 py-1.5 rounded-xl bg-[var(--chip-bg)] border border-[var(--border-app)] text-center min-w-[64px]">
+                        <div className="text-[10px] font-bold text-[var(--text-sub)]">بلاتينيوم</div>
+                        <div className="text-sm font-black text-[var(--text-main)] font-mono">
                           {stats.platinum}
                         </div>
                       </div>
 
                       {/* Gold */}
                       <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-center min-w-[60px]">
-                        <div className="text-[10px] font-bold text-amber-300">ذهبي</div>
-                        <div className="text-sm font-black text-amber-200 font-mono">
+                        <div className="text-[10px] font-bold text-amber-500 dark:text-amber-300">ذهبي</div>
+                        <div className="text-sm font-black text-amber-600 dark:text-amber-200 font-mono">
                           {stats.gold}
                         </div>
                       </div>
 
                       {/* Silver */}
-                      <div className="px-3 py-1.5 rounded-xl bg-slate-300/10 border border-slate-300/25 text-center min-w-[60px]">
-                        <div className="text-[10px] font-bold text-slate-300">فضي</div>
-                        <div className="text-sm font-black text-slate-100 font-mono">
+                      <div className="px-3 py-1.5 rounded-xl bg-slate-400/10 border border-slate-400/25 text-center min-w-[60px]">
+                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-300">فضي</div>
+                        <div className="text-sm font-black text-slate-700 dark:text-slate-100 font-mono">
                           {stats.silver}
                         </div>
                       </div>
 
                       {/* Bronze */}
                       <div className="px-3 py-1.5 rounded-xl bg-orange-700/10 border border-orange-700/25 text-center min-w-[60px]">
-                        <div className="text-[10px] font-bold text-orange-300">برونزي</div>
-                        <div className="text-sm font-black text-orange-200 font-mono">
+                        <div className="text-[10px] font-bold text-orange-600 dark:text-orange-300">برونزي</div>
+                        <div className="text-sm font-black text-orange-700 dark:text-orange-200 font-mono">
                           {stats.bronze}
                         </div>
                       </div>
 
                       {/* Total */}
-                      <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-center min-w-[68px]">
-                        <div className="text-[10px] font-bold text-gray-400">الإجمالي</div>
-                        <div className="text-sm font-black text-gray-200 font-mono">
+                      <div className="px-3 py-1.5 rounded-xl bg-[var(--chip-bg)] border border-[var(--border-app)] text-center min-w-[68px]">
+                        <div className="text-[10px] font-bold text-[var(--text-muted)]">الإجمالي</div>
+                        <div className="text-sm font-black text-[var(--text-main)] font-mono">
                           {stats.total || (stats.platinum + stats.gold + stats.silver + stats.bronze)}
                         </div>
                       </div>
@@ -199,23 +199,23 @@ export function LeaderboardView() {
         </div>
       ) : (
         /* Empty State */
-        <div className="max-w-2xl mx-auto bg-[#12141c] border border-white/15 rounded-3xl p-8 md:p-12 text-center shadow-2xl relative overflow-hidden space-y-6">
-          <div className="w-20 h-20 mx-auto rounded-3xl bg-white/5 border border-white/15 flex items-center justify-center">
-            <Trophy className="w-10 h-10 text-gray-400" />
+        <div className="max-w-2xl mx-auto bg-[var(--bg-card)] border border-[var(--border-app)] rounded-3xl p-8 md:p-12 text-center shadow-2xl relative overflow-hidden space-y-6">
+          <div className="w-20 h-20 mx-auto rounded-3xl bg-[var(--chip-bg)] border border-[var(--border-app)] flex items-center justify-center">
+            <Trophy className="w-10 h-10 text-[var(--text-muted)]" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl md:text-3xl font-black text-white">
+            <h2 className="text-2xl md:text-3xl font-black text-[var(--text-main)]">
               لا يوجد متصدرين موثقين حالياً
             </h2>
-            <p className="text-sm text-gray-400 max-w-md mx-auto leading-relaxed">
+            <p className="text-sm text-[var(--text-sub)] max-w-md mx-auto leading-relaxed">
               كن أول من يوثق حسابه في السوني وينضم إلى صدارة صائدي البلاتينيوم في كاتشي.
             </p>
           </div>
           <button
             onClick={() => navigate('/verify')}
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-white text-black font-black text-sm hover:bg-gray-200 transition-all cursor-pointer shadow-lg"
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-black text-sm hover:opacity-90 transition-all cursor-pointer shadow-lg"
           >
-            <ShieldCheck className="w-4 h-4 text-black" />
+            <ShieldCheck className="w-4 h-4" />
             <span>توثيق حسابك الآن</span>
           </button>
         </div>
@@ -225,10 +225,3 @@ export function LeaderboardView() {
   );
 }
 
-function Check(props: any) {
-  return (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}

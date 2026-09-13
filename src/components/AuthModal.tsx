@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { signInWithGoogle, User } from '../lib/firebase';
 import { Logo } from './Logo';
-import { ShieldCheck, AlertCircle, FileText, X } from 'lucide-react';
+import { AlertCircle, X } from 'lucide-react';
 import { TermsModal } from './TermsModal';
 
 interface AuthModalProps {
@@ -40,12 +40,12 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
         />
 
         {/* Modal */}
-        <div className="relative bg-[#12141c] border border-white/20 rounded-3xl max-w-md w-full p-6 md:p-8 space-y-6 z-10 shadow-2xl overflow-hidden">
+        <div className="relative bg-[var(--bg-card)] border border-[var(--border-app)] rounded-3xl max-w-md w-full p-6 md:p-8 space-y-6 z-10 shadow-2xl overflow-hidden">
           
           {/* Close (X) Button */}
           <button
             onClick={onClose}
-            className="absolute top-5 left-5 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer z-20"
+            className="absolute top-5 left-5 p-2 rounded-xl bg-[var(--chip-bg)] hover:bg-[var(--bg-card-hover)] text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors cursor-pointer z-20 border border-[var(--border-app)]"
             title="إغلاق"
             aria-label="إغلاق"
           >
@@ -53,22 +53,22 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           </button>
 
           {/* Glow */}
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-[var(--chip-bg)] rounded-full blur-3xl pointer-events-none" />
 
           {/* Header with Logo */}
           <div className="text-center space-y-3 pt-2">
             <div className="flex justify-center">
               <Logo showText={true} />
             </div>
-            <h2 className="text-2xl font-black text-white">تسجيل الدخول إلى كاتشي</h2>
-            <p className="text-xs text-gray-400">
+            <h2 className="text-2xl font-black text-[var(--text-main)]">تسجيل الدخول إلى كاتشي</h2>
+            <p className="text-xs text-[var(--text-muted)]">
               سجل دخولك لحفظ بياناتك ومتابعة توثيق حسابك في السوني
             </p>
           </div>
 
           {/* Error message */}
           {error && (
-            <div className="flex items-start gap-2.5 text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 p-3.5 rounded-xl">
+            <div className="flex items-start gap-2.5 text-xs text-rose-500 dark:text-rose-300 bg-rose-500/10 border border-rose-500/20 p-3.5 rounded-xl">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span className="leading-relaxed">{error}</span>
             </div>
@@ -80,10 +80,10 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-2xl bg-white hover:bg-gray-100 text-black font-bold text-sm transition-all duration-200 shadow-md cursor-pointer disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-2xl bg-[var(--btn-primary-bg)] hover:opacity-90 text-[var(--btn-primary-text)] font-bold text-sm transition-all duration-200 shadow-md cursor-pointer disabled:opacity-50"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-[var(--btn-primary-text)] border-t-transparent rounded-full animate-spin" />
               ) : (
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path
@@ -110,12 +110,12 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
 
           {/* Terms and Conditions Acceptance Text Only as requested */}
           <div className="text-center pt-1">
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
               بالمتابعة فإنك توافق على{' '}
               <button
                 type="button"
                 onClick={() => setIsTermsOpen(true)}
-                className="text-white underline underline-offset-4 hover:text-gray-200 font-bold cursor-pointer inline"
+                className="text-[var(--text-main)] underline underline-offset-4 hover:opacity-80 font-bold cursor-pointer inline"
               >
                 الشروط والأحكام
               </button>
@@ -130,3 +130,4 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     </>
   );
 }
+

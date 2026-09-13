@@ -34,16 +34,16 @@ export function Logo({ className = "", showText = true }: { className?: string; 
       {showText && (
         <div className="flex items-center gap-2.5 leading-none">
           {/* Arabic Name */}
-          <span className="text-xl md:text-2xl font-black text-white tracking-normal translate-y-[-1px]">
+          <span className="text-xl md:text-2xl font-black text-[var(--text-main)] tracking-normal translate-y-[-1px]">
             كاتشي
           </span>
 
           {/* Stylized English Name: KACHI with A without middle horizontal bar (KΛCHI) with strict LTR direction */}
-          <span dir="ltr" className="text-lg md:text-xl font-black text-white tracking-wider flex items-center gap-[0.5px] font-sans">
+          <span dir="ltr" className="text-lg md:text-xl font-black text-[var(--text-main)] tracking-wider flex items-center gap-[0.5px] font-sans">
             <span>K</span>
             {/* Custom geometric 'A' without the middle crossbar (Λ chevron) */}
             <span className="inline-block relative w-[13px] h-[17px] mx-[0.5px]">
-              <svg viewBox="0 0 20 26" className="w-full h-full text-white" fill="none" stroke="currentColor" strokeWidth="4.2" strokeLinecap="square" strokeLinejoin="miter">
+              <svg viewBox="0 0 20 26" className="w-full h-full text-[var(--text-main)]" fill="none" stroke="currentColor" strokeWidth="4.2" strokeLinecap="square" strokeLinejoin="miter">
                 <path d="M2 24 L10 3 L18 24" />
               </svg>
             </span>

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { X, FileText, CheckCircle2, ArrowRight } from 'lucide-react';
+import { X, FileText, ArrowRight } from 'lucide-react';
 
 interface TermsModalProps {
   isOpen: boolean;
@@ -98,22 +98,22 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
       />
 
       {/* Modal Box */}
-      <div className="relative bg-[#12141c] border border-white/20 rounded-3xl max-w-2xl w-full p-6 md:p-8 space-y-6 z-10 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
+      <div className="relative bg-[var(--bg-card)] border border-[var(--border-app)] rounded-3xl max-w-2xl w-full p-6 md:p-8 space-y-6 z-10 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-4 flex-shrink-0">
+        <div className="flex items-center justify-between border-b border-[var(--border-app)] pb-4 flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white">
+            <div className="w-10 h-10 rounded-xl bg-[var(--chip-bg)] border border-[var(--border-app)] flex items-center justify-center text-[var(--text-main)]">
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-white">KACHI | كاتشي</h2>
-              <p className="text-xs text-gray-400">شروط الاستخدام الرسمية</p>
+              <h2 className="text-xl font-black text-[var(--text-main)]">KACHI | كاتشي</h2>
+              <p className="text-xs text-[var(--text-muted)]">شروط الاستخدام الرسمية</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-[var(--chip-bg)] hover:bg-[var(--bg-card-hover)] text-[var(--text-sub)] hover:text-[var(--text-main)] border border-[var(--border-app)] transition-colors cursor-pointer"
             title="إغلاق"
           >
             <X className="w-5 h-5" />
@@ -121,36 +121,36 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
         </div>
 
         {/* Content Scrollable */}
-        <div className="flex-1 overflow-y-auto space-y-4 text-xs md:text-sm text-gray-300 leading-relaxed pr-1 pl-1">
+        <div className="flex-1 overflow-y-auto space-y-4 text-xs md:text-sm text-[var(--text-sub)] leading-relaxed pr-1 pl-1">
           {termsList.map(term => (
             <div 
               key={term.number} 
               className={`p-4 rounded-xl border ${
                 term.highlight 
                   ? 'bg-rose-500/10 border-rose-500/25' 
-                  : 'bg-[#161922] border-white/10'
+                  : 'bg-[var(--chip-bg)] border-[var(--border-app)]'
               }`}
             >
-              <h4 className="font-bold text-white mb-1 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-white/10 inline-flex items-center justify-center text-[11px] font-mono">
+              <h4 className="font-bold text-[var(--text-main)] mb-1 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-[var(--bg-card)] border border-[var(--border-app)] inline-flex items-center justify-center text-[11px] font-mono">
                   {term.number}
                 </span>
                 <span>{term.title}</span>
               </h4>
-              <p className="text-xs text-gray-300 pr-7">{term.content}</p>
+              <p className="text-xs text-[var(--text-sub)] pr-7">{term.content}</p>
             </div>
           ))}
         </div>
 
         {/* Footer */}
-        <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0">
+        <div className="pt-4 border-t border-[var(--border-app)] flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0">
           <button
             type="button"
             onClick={() => {
               onClose();
               navigate('/terms');
             }}
-            className="text-xs text-gray-300 hover:text-white underline underline-offset-4 cursor-pointer flex items-center gap-1"
+            className="text-xs text-[var(--text-sub)] hover:text-[var(--text-main)] underline underline-offset-4 cursor-pointer flex items-center gap-1"
           >
             <span>فتح صفحة الشروط الكاملة</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -158,7 +158,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
 
           <button
             onClick={onClose}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-white hover:bg-gray-200 text-black font-bold text-xs transition-colors cursor-pointer"
+            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[var(--btn-primary-bg)] hover:opacity-90 text-[var(--btn-primary-text)] font-bold text-xs transition-colors cursor-pointer"
           >
             موافق وفهمت
           </button>
@@ -168,3 +168,4 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
     </div>
   );
 }
+
