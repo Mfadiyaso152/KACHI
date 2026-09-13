@@ -5,7 +5,7 @@ import {
   ShieldAlert, 
   Search, 
   Lock, 
-  KeyRound,
+  KeyRound, 
   Check, 
   X, 
   UserCheck, 
@@ -17,7 +17,8 @@ import {
   Trophy,
   AlertCircle,
   Eye,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import { 
   ADMIN_EMAIL, 
@@ -29,7 +30,8 @@ import {
   getAdminEmails,
   addAdminEmail,
   removeAdminEmail,
-  isUserAdmin
+  isUserAdmin,
+  DATA_SYNC_EVENT
 } from '../lib/adminStore';
 import { AppUserAccount, VerificationRequest } from '../types';
 
@@ -66,7 +68,7 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
   // New Admin Email Form
   const [newAdminEmail, setNewAdminEmail] = useState('');
 
-  // Super Admin Check (only the owner mfb.15.f@gmail.com can see generated password and manage admins)
+  // Super Admin Check
   const isSuperAdmin = currentUserEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const hasAdminAccess = isUserAdmin(currentUserEmail);
 
@@ -76,8 +78,31 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
     setAdminEmails(getAdminEmails());
   };
 
+  // Real-time synchronization listeners (Instant broadcast + cross-tab + interval fallback)
   useEffect(() => {
     loadData();
+
+    const handleSync = () => {
+      loadData();
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key?.startsWith('kachi_')) {
+        loadData();
+      }
+    };
+
+    window.addEventListener(DATA_SYNC_EVENT, handleSync);
+    window.addEventListener('storage', handleStorage);
+    
+    // High-frequency polling (every 1 second) to guarantee 0-delay updates
+    const timer = setInterval(loadData, 1000);
+
+    return () => {
+      window.removeEventListener(DATA_SYNC_EVENT, handleSync);
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(timer);
+    };
   }, []);
 
   const triggerNotice = (type: 'success' | 'error', message: string) => {
@@ -138,13 +163,10 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
       alert('لا يمكن حظر حساب مدير النظام الرئيسي.');
       return;
     }
-    const result = toggleUserBan(user.uid);
-    if (result.success) {
+    const res = toggleUserBan(user.uid);
+    if (res.success) {
       loadData();
-      if (selectedUser?.uid === user.uid) {
-        setSelectedUser(prev => prev ? { ...prev, isBanned: result.isBanned } : null);
-      }
-      triggerNotice('success', result.isBanned ? `تم حظر ${user.displayName || user.email}` : `تم فك حظر ${user.displayName || user.email}`);
+      triggerNotice('success', res.message);
     }
   };
 
@@ -164,309 +186,443 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
   };
 
   const handleRemoveAdmin = (email: string) => {
-    if (!confirm(`هل أنت متأكد من إزالة صلاحية الإدارة عن ${email}؟`)) return;
-    const res = removeAdminEmail(email);
-    if (res.success) {
-      loadData();
-      triggerNotice('success', res.message);
-    } else {
-      triggerNotice('error', res.message);
+    if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      alert('لا يمكن حذف المدير الرئيسي.');
+      return;
+    }
+    if (confirm(`هل أنت متأكد من إزالة صلاحيات الإدارة عن (${email})؟`)) {
+      const res = removeAdminEmail(email);
+      if (res.success) {
+        loadData();
+        triggerNotice('success', res.message);
+      }
     }
   };
 
   if (!hasAdminAccess) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center py-16 px-4">
-        <div className="max-w-md w-full bg-[#12141c] border border-white/10 rounded-3xl p-8 text-center space-y-4 shadow-2xl">
-          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 text-white flex items-center justify-center mx-auto">
-            <Lock className="w-8 h-8" />
-          </div>
-          <h2 className="text-2xl font-black text-white">منطقة الإدارة</h2>
-          <p className="text-xs text-gray-400 leading-relaxed">
-            هذه المنطقة مقتصرة على مديري المنصة المعتمدين.
-          </p>
+      <div className="max-w-xl mx-auto my-12 p-8 rounded-3xl bg-[#12141c] border border-white/10 text-center space-y-4">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center text-white">
+          <Lock className="w-8 h-8" />
         </div>
+        <h2 className="text-2xl font-bold text-white">منطقة محمية - للمدراء فقط</h2>
+        <p className="text-sm text-gray-400">
+          هذه الصفحة مخصصة لمدراء منصة كاتشي لمراجعة طلبات التوثيق وإدارة اللاعبين.
+        </p>
+        <p className="text-xs text-gray-500 font-mono">
+          حسابك الحالي: {currentUserEmail || 'غير مسجل الدخول'}
+        </p>
       </div>
     );
   }
 
-  // Filtered Users List
+  // Filtered requests & users
+  const pendingRequests = requests.filter(r => r.status === 'pending');
+  const pastRequests = requests.filter(r => r.status !== 'pending');
+
   const filteredUsers = users.filter(u => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
-      u.email.toLowerCase().includes(q) ||
-      (u.psnId && u.psnId.toLowerCase().includes(q)) ||
-      u.displayName.toLowerCase().includes(q)
+      u.email?.toLowerCase().includes(q) ||
+      u.displayName?.toLowerCase().includes(q) ||
+      u.psnId?.toLowerCase().includes(q) ||
+      u.verificationSecret?.toLowerCase().includes(q)
     );
   });
 
-  const pendingRequests = requests.filter(r => r.status === 'pending');
-
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-8 pb-20 max-w-6xl mx-auto">
       
-      {/* Toast Notice */}
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-[#12141c] border border-white/15 p-6 rounded-3xl shadow-xl">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 rounded-full bg-white/10 text-white text-xs font-bold border border-white/20">
+              لوحة الإدارة والتحكم
+            </span>
+            <span className="flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              تحديث فوري مباشر
+            </span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-black text-white">
+            إدارة المنصة والمستخدمين
+          </h1>
+          <p className="text-xs text-gray-400">
+            مرحباً {currentUserEmail} - يمكنك اعتماد التوثيقات بكلمة السر وإدارة المستخدمين فوراً
+          </p>
+        </div>
+
+        {/* Global Stats */}
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex-1 md:flex-initial px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-center">
+            <div className="text-[11px] text-gray-400 font-bold">طلبات بالانتظار</div>
+            <div className="text-xl font-black text-white font-mono">{pendingRequests.length}</div>
+          </div>
+          <div className="flex-1 md:flex-initial px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-center">
+            <div className="text-[11px] text-gray-400 font-bold">إجمالي المسجلين</div>
+            <div className="text-xl font-black text-white font-mono">{users.length}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Notice banner */}
       {actionNotice && (
-        <div className={`p-4 rounded-2xl border text-xs font-bold flex items-center gap-2 max-w-xl mx-auto shadow-xl transition-all ${
+        <div className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-2 border ${
           actionNotice.type === 'success' 
-            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' 
-            : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
+            : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
         }`}>
           {actionNotice.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
           <span>{actionNotice.message}</span>
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white border border-white/15 text-xs font-bold font-mono mb-2">
-            <ShieldCheck className="w-3.5 h-3.5 text-white" />
-            <span>لوحة تحكم إدارة كاتشي KACHI</span>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-black text-white">لوحة الإدارة</h1>
-          <p className="text-xs text-gray-400 mt-1">
-            إدارة طلبات التوثيق بالسوني، استعراض المستخدمين، وإدارة فريق العمل.
-          </p>
-        </div>
+      {/* Tab Controls */}
+      <div className="flex items-center gap-2 border-b border-white/10 pb-4 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('requests')}
+          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer flex-shrink-0 ${
+            activeTab === 'requests'
+              ? 'bg-white text-black shadow-lg'
+              : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>طلبات التوثيق ({pendingRequests.length})</span>
+        </button>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 bg-[#12141c] p-1.5 rounded-2xl border border-white/10 self-start md:self-auto">
+        <button
+          onClick={() => setActiveTab('users')}
+          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer flex-shrink-0 ${
+            activeTab === 'users'
+              ? 'bg-white text-black shadow-lg'
+              : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>قاعدة بيانات المستخدمين ({users.length})</span>
+        </button>
+
+        {isSuperAdmin && (
           <button
-            onClick={() => setActiveTab('requests')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'requests' 
-                ? 'bg-white text-black shadow-md' 
-                : 'text-gray-300 hover:text-white hover:bg-white/5'
+            onClick={() => setActiveTab('admins')}
+            className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer flex-shrink-0 ${
+              activeTab === 'admins'
+                ? 'bg-white text-black shadow-lg'
+                : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
-            <span>طلبات التوثيق</span>
-            {pendingRequests.length > 0 && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                activeTab === 'requests' ? 'bg-black text-white' : 'bg-emerald-500 text-black'
-              }`}>
-                {pendingRequests.length}
-              </span>
-            )}
+            <KeyRound className="w-4 h-4" />
+            <span>طاقم الإدارة ({adminEmails.length})</span>
           </button>
-
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'users' 
-                ? 'bg-white text-black shadow-md' 
-                : 'text-gray-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>المستخدمين ({users.length})</span>
-          </button>
-
-          {isSuperAdmin && (
-            <button
-              onClick={() => setActiveTab('admins')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'admins' 
-                  ? 'bg-white text-black shadow-md' 
-                  : 'text-gray-300 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <UserCheck className="w-4 h-4" />
-              <span>الإدارة ({adminEmails.length})</span>
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* SECTION 1: طلبات التوثيق (VERIFICATION REQUESTS) */}
+      {/* TAB 1: VERIFICATION REQUESTS */}
       {activeTab === 'requests' && (
         <div className="space-y-6">
-          <div className="bg-[#12141c] border border-white/15 rounded-3xl p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-white" />
-                <span>طلبات التوثيق المعلقة والمراجعة</span>
-              </h2>
-              <span className="text-xs text-gray-400 font-mono">
-                {requests.length} طلبات إجمالاً
-              </span>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Clock className="w-5 h-5 text-white" />
+              <span>الطلبات المعلقة قيد المراجعة</span>
+            </h2>
+            <span className="text-xs text-gray-400 font-mono">
+              {pendingRequests.length} طلب ينتظر الإجراء
+            </span>
+          </div>
+
+          {pendingRequests.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl bg-[#12141c] border border-white/10 space-y-2">
+              <ShieldCheck className="w-12 h-12 text-emerald-400/60 mx-auto" />
+              <div className="text-white font-bold text-base">لا توجد طلبات توثيق معلقة حالياً</div>
+              <p className="text-xs text-gray-400">أي طلب توثيق يقدمه لاعب في السوني سيظهر هنا فوراً في نفس اللحظة.</p>
             </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {pendingRequests.map(req => (
+                <div 
+                  key={req.id} 
+                  className="bg-[#12141c] border border-white/15 hover:border-white/30 rounded-3xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl transition-all"
+                >
+                  <div className="space-y-2 max-w-xl">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-lg font-black text-white font-mono bg-white/10 px-3 py-1 rounded-xl border border-white/20">
+                        {req.psnId}
+                      </span>
+                      <span className="text-xs text-gray-300 font-bold">
+                        {req.displayName}
+                      </span>
+                      <span className="text-[11px] text-gray-400 font-mono">
+                        ({req.userEmail})
+                      </span>
+                    </div>
 
-            <p className="text-xs text-gray-300 leading-relaxed">
-              يقوم اللاعب بإضافة حساب السوني <strong className="text-white font-mono">HamoDyMFB</strong> وإرسال كلمة السر العشوائية. 
-              عند تأكيد الطلب، يجب إدخال كلمة السر التي أرسلها اللاعب عبر السوني مع إرفاق خانات التروفيات الأربع.
-              {isSuperAdmin && (
-                <span className="block mt-1 text-emerald-400 font-bold">
-                  (بصفتك مدير النظام الرئيسي، يمكنك الاطلاع على كلمات السر التوليدية للتأكد).
-                </span>
-              )}
-            </p>
+                    <div className="text-xs text-gray-400 leading-relaxed flex items-center gap-2 flex-wrap">
+                      <span className="text-white font-bold">تاريخ الطلب:</span>
+                      <span className="font-mono text-gray-300">{new Date(req.requestedAt).toLocaleString('ar-SA')}</span>
+                    </div>
 
-            {requests.length > 0 ? (
-              <div className="divide-y divide-white/5">
-                {requests.map(req => {
-                  const isPending = req.status === 'pending';
-                  return (
-                    <div key={req.id} className="py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-base font-black text-white font-mono">
-                            {req.psnId}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            req.status === 'approved' 
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
-                              : req.status === 'rejected'
-                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          }`}>
-                            {req.status === 'approved' ? 'موثق ومعتمد' : req.status === 'rejected' ? 'مرفوض' : 'قيد الانتظار'}
-                          </span>
-                        </div>
-
-                        <div className="text-xs text-gray-400 flex items-center gap-3 flex-wrap">
-                          <span>الاسم: <strong className="text-gray-200">{req.displayName}</strong></span>
-                          <span>البريد: <strong className="text-gray-200">{req.userEmail}</strong></span>
-                          <span>الوقت: <strong className="text-gray-200">{new Date(req.requestedAt).toLocaleDateString('ar-SA')}</strong></span>
-                        </div>
-
-                        {/* Super Admin view of secret */}
-                        {isSuperAdmin && (
-                          <div className="text-xs text-emerald-300 font-mono bg-emerald-950/30 border border-emerald-500/20 px-2 py-1 rounded inline-block">
-                            كلمة السر المولدة للمستخدم: <strong>{req.verificationSecret}</strong>
-                          </div>
-                        )}
+                    {/* Secret Password hint for Super Admin */}
+                    {isSuperAdmin && (
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-white/10 border border-white/20 text-xs font-mono text-white">
+                        <KeyRound className="w-3.5 h-3.5 text-white" />
+                        <span>كلمة السر المتوقعة في رسالة السوني:</span>
+                        <strong className="text-white font-black text-sm bg-black/40 px-2 py-0.5 rounded border border-white/20">
+                          {req.verificationSecret}
+                        </strong>
                       </div>
+                    )}
+                  </div>
 
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {isPending ? (
-                          <>
-                            <button
-                              onClick={() => openApprovalModal(req)}
-                              className="px-4 py-2 rounded-xl bg-white text-black hover:bg-gray-200 font-bold text-xs transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
-                            >
-                              <Check className="w-4 h-4 text-black" />
-                              <span>تأكيد وقبول التوثيق</span>
-                            </button>
-                            <button
-                              onClick={() => handleReject(req)}
-                              className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-300 font-bold text-xs transition-colors cursor-pointer"
-                            >
-                              رفض
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => openApprovalModal(req)}
-                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs font-bold transition-colors cursor-pointer"
-                          >
-                            تعديل التروفيات
-                          </button>
-                        )}
+                  {/* Actions */}
+                  <div className="flex items-center gap-3 w-full md:w-auto">
+                    <button
+                      onClick={() => openApprovalModal(req)}
+                      className="flex-1 md:flex-initial px-5 py-2.5 rounded-xl bg-white text-black hover:bg-gray-200 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>اعتماد وإدخال التروفيات</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleReject(req)}
+                      className="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      title="رفض الطلب"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>رفض</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Past/Reviewed Requests Section */}
+          {pastRequests.length > 0 && (
+            <div className="pt-8 space-y-4">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                الطلبات التي تمت معالجتها سابقاً ({pastRequests.length})
+              </h3>
+              <div className="bg-[#12141c] border border-white/10 rounded-3xl divide-y divide-white/5 overflow-hidden">
+                {pastRequests.slice(0, 10).map(req => (
+                  <div key={req.id} className="p-4 flex items-center justify-between text-xs">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-white">{req.psnId}</span>
+                        <span className="text-gray-400">({req.userEmail})</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          req.status === 'approved' 
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }`}>
+                          {req.status === 'approved' ? 'تم التوثيق' : 'مرفوض'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-gray-500">
+                        {req.notes || 'لا توجد ملاحظات'}
                       </div>
                     </div>
-                  );
-                })}
+                    <div className="text-right text-[11px] text-gray-500 font-mono">
+                      {req.reviewedAt ? new Date(req.reviewedAt).toLocaleDateString('ar-SA') : '-'}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ) : (
-              <div className="text-center py-8 text-xs text-gray-400">
-                لا توجد طلبات توثيق مسجلة حالياً.
-              </div>
-            )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: USERS DATABASE */}
+      {activeTab === 'users' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#12141c] border border-white/10 p-4 rounded-3xl">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="بحث بالاسم، الإيميل، معرف السوني..."
+                className="w-full bg-[#161922] border border-white/10 rounded-xl pr-10 pl-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-white/30 font-sans"
+              />
+            </div>
+
+            <div className="text-xs text-gray-400">
+              إجمالي المستخدمين: <strong className="text-white font-mono">{filteredUsers.length}</strong>
+            </div>
+          </div>
+
+          <div className="bg-[#12141c] border border-white/15 rounded-3xl overflow-hidden shadow-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-[#161922] border-b border-white/10 text-gray-400 font-bold">
+                  <tr>
+                    <th className="p-4">اللاعب</th>
+                    <th className="p-4">معرف السوني (PSN)</th>
+                    <th className="p-4">حالة التوثيق</th>
+                    <th className="p-4">التروفيات (P/G/S/B)</th>
+                    <th className="p-4">كلمة السر</th>
+                    <th className="p-4 text-center">الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filteredUsers.map(user => {
+                    const stats = user.trophyStats;
+                    const isUserMainAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+                    return (
+                      <tr key={user.uid} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="p-4">
+                          <div className="space-y-0.5">
+                            <div className="font-bold text-white flex items-center gap-1.5">
+                              <span>{user.displayName}</span>
+                              {user.role === 'admin' && (
+                                <span className="text-[10px] bg-white text-black font-bold px-1.5 py-0.2 rounded">مدير</span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-gray-400 font-mono">{user.email}</div>
+                          </div>
+                        </td>
+
+                        <td className="p-4 font-mono font-bold text-white">
+                          {user.psnId || <span className="text-gray-500 font-sans text-[11px]">لم يربط بعد</span>}
+                        </td>
+
+                        <td className="p-4">
+                          {user.isVerified ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-[11px]">
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <span>موثق بالسوني</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 text-gray-400 border border-white/10 text-[11px]">
+                              <span>غير موثق</span>
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="p-4 font-mono">
+                          {stats ? (
+                            <div className="flex items-center gap-1.5 text-[11px]">
+                              <span className="text-white font-bold">💎{stats.platinum}</span>
+                              <span className="text-amber-300">🥇{stats.gold}</span>
+                              <span className="text-slate-300">🥈{stats.silver}</span>
+                              <span className="text-orange-300">🥉{stats.bronze}</span>
+                              <span className="text-gray-400 mr-1">Lv.{stats.level}</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 text-[11px]">-</span>
+                          )}
+                        </td>
+
+                        <td className="p-4 font-mono text-white">
+                          {isSuperAdmin ? (
+                            <span className="bg-white/10 px-2 py-1 rounded border border-white/20 text-white font-bold">
+                              {user.verificationSecret || '-'}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500 text-[11px]">محمي للمدير العام</span>
+                          )}
+                        </td>
+
+                        <td className="p-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => setSelectedUser(user)}
+                              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors cursor-pointer"
+                              title="عرض التفاصيل الكاملة"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+
+                            {!isUserMainAdmin && (
+                              <button
+                                onClick={() => handleToggleBan(user)}
+                                className={`px-3 py-1.5 rounded-xl font-bold text-[11px] transition-colors cursor-pointer ${
+                                  user.isBanned
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20'
+                                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20'
+                                }`}
+                              >
+                                {user.isBanned ? 'فك الحظر' : 'حظر'}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
-      {/* SECTION 2: المستخدمين (USERS LIST & SEARCH) */}
-      {activeTab === 'users' && (
-        <div className="space-y-6">
-          <div className="bg-[#12141c] border border-white/15 rounded-3xl p-6 shadow-xl space-y-5">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Users className="w-5 h-5 text-white" />
-                  <span>دليل المستخدمين المسجلين في المنصة</span>
-                </h2>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  اضغط على أي مستخدم للاطلاع على بياناته وتفاصيل حسابه.
-                </p>
-              </div>
+      {/* TAB 3: ADMINS MANAGEMENT (Super Admin Only) */}
+      {activeTab === 'admins' && isSuperAdmin && (
+        <div className="space-y-6 max-w-3xl">
+          <div className="bg-[#12141c] border border-white/15 p-6 rounded-3xl space-y-4 shadow-xl">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-white" />
+              <span>إضافة مدير جديد للنظام</span>
+            </h2>
+            <p className="text-xs text-gray-400">
+              يمكن للمدير مراجعة طلبات توثيق السوني وإدخال التروفيات للاعبين. المدير العام الرئيسي فقط هو ({ADMIN_EMAIL}).
+            </p>
 
-              {/* Search by PSN ID or Email */}
-              <div className="relative w-full sm:w-80">
-                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="بحث بمعرف السوني أو الإيميل..."
-                  className="w-full bg-[#161922] border border-white/15 focus:border-white/40 rounded-xl pr-10 pl-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none transition-all font-mono"
-                />
-              </div>
+            <form onSubmit={handleAddAdmin} className="flex gap-3">
+              <input
+                type="email"
+                required
+                value={newAdminEmail}
+                onChange={(e) => setNewAdminEmail(e.target.value)}
+                placeholder="example@gmail.com"
+                className="flex-1 bg-[#161922] border border-white/10 focus:border-white/40 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none font-mono"
+              />
+              <button
+                type="submit"
+                className="px-6 py-2.5 rounded-xl bg-white text-black hover:bg-gray-200 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-md flex-shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>إضافة كمدير</span>
+              </button>
+            </form>
+          </div>
+
+          <div className="bg-[#12141c] border border-white/15 rounded-3xl overflow-hidden shadow-xl">
+            <div className="p-4 border-b border-white/10 font-bold text-xs text-gray-400">
+              قائمة المدراء المصرح لهم حالياً
             </div>
-
-            {/* Users List */}
             <div className="divide-y divide-white/5">
-              {filteredUsers.map((user) => {
-                const hasRequested = requests.some(r => r.userEmail.toLowerCase() === user.email.toLowerCase());
+              {adminEmails.map(email => {
+                const isRoot = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
                 return (
-                  <div
-                    key={user.uid}
-                    onClick={() => setSelectedUser(user)}
-                    className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-white/[0.02] p-2 rounded-xl transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center font-bold text-white flex-shrink-0">
-                        {user.displayName?.[0] || 'U'}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-bold text-white">
-                            {user.displayName}
-                          </span>
-                          {user.psnId && (
-                            <span className="text-xs font-mono text-gray-300 bg-white/5 px-2 py-0.5 rounded border border-white/10">
-                              PSN: {user.psnId}
-                            </span>
-                          )}
-                          {user.isVerified && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                              موثق
-                            </span>
-                          )}
-                          {user.role === 'admin' && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-black">
-                              إدارة
-                            </span>
-                          )}
-                          {user.isBanned && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                              محظور
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-0.5 font-mono">
-                          {user.email}
-                        </div>
-                      </div>
+                  <div key={email} className="p-4 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-4 h-4 text-gray-400" />
+                      <span className="font-mono text-white font-bold">{email}</span>
+                      {isRoot && (
+                        <span className="px-2 py-0.5 rounded-full bg-white text-black font-bold text-[10px]">
+                          المدير الرئيسي للمنصة
+                        </span>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-gray-400">
-                      <span>{hasRequested ? 'أرسل طلب توثيق' : 'لم يطلب توثيق'}</span>
+                    {!isRoot && (
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedUser(user);
-                        }}
-                        className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold transition-colors cursor-pointer"
+                        onClick={() => handleRemoveAdmin(email)}
+                        className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors cursor-pointer"
+                        title="إزالة صلاحية الإدارة"
                       >
-                        عرض التفاصيل
+                        <Trash2 className="w-4 h-4" />
                       </button>
-                    </div>
+                    )}
                   </div>
                 );
               })}
@@ -475,313 +631,197 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
         </div>
       )}
 
-      {/* SECTION 3: الإدارة (ADMIN MANAGEMENT) */}
-      {activeTab === 'admins' && isSuperAdmin && (
-        <div className="space-y-6">
-          <div className="bg-[#12141c] border border-white/15 rounded-3xl p-6 shadow-xl space-y-6">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-white" />
-                <span>إدارة فريق الإدارة وصلاحيات المنصة</span>
-              </h2>
-              <p className="text-xs text-gray-400 mt-1">
-                يمكنك إضافة بريد إلكتروني لترقيته إلى مدير. يشترط أن يكون صاحب البريد قد سجل دخوله للمنصة مسبقاً.
-              </p>
-            </div>
-
-            {/* Add Admin Form */}
-            <form onSubmit={handleAddAdmin} className="flex flex-col sm:flex-row gap-3 max-w-xl">
-              <input
-                type="email"
-                value={newAdminEmail}
-                onChange={(e) => setNewAdminEmail(e.target.value)}
-                placeholder="أدخل البريد الإلكتروني للمدير الجديد..."
-                className="flex-1 bg-[#161922] border border-white/15 focus:border-white/40 rounded-xl px-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none transition-all font-mono"
-              />
-              <button
-                type="submit"
-                className="px-6 py-3 rounded-xl bg-white text-black hover:bg-gray-200 font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md flex-shrink-0"
-              >
-                <Plus className="w-4 h-4" />
-                <span>إضافة كمدير</span>
-              </button>
-            </form>
-
-            {/* Admin list */}
-            <div className="space-y-3 pt-2">
-              <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">
-                المديرون الحاليون ({adminEmails.length})
-              </h3>
-              <div className="divide-y divide-white/5 border border-white/10 rounded-2xl overflow-hidden bg-[#161922]">
-                {adminEmails.map((email) => {
-                  const isMainAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-                  return (
-                    <div key={email} className="p-4 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 font-mono text-xs">
-                        <Mail className="w-4 h-4 text-gray-400" />
-                        <span className="font-bold text-white">{email}</span>
-                        {isMainAdmin && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-black">
-                            مدير النظام الرئيسي (Owner)
-                          </span>
-                        )}
-                      </div>
-                      {!isMainAdmin && (
-                        <button
-                          onClick={() => handleRemoveAdmin(email)}
-                          className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
-                          title="إزالة الإدارة"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>إزالة</span>
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 1: USER DETAILS MODAL */}
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={() => setSelectedUser(null)} />
-          <div className="relative bg-[#12141c] border border-white/20 rounded-3xl max-w-lg w-full p-6 md:p-8 space-y-6 z-10 shadow-2xl">
-            
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-bold text-white">
-                  {selectedUser.displayName?.[0] || 'U'}
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">{selectedUser.displayName}</h3>
-                  <p className="text-xs text-gray-400 font-mono">{selectedUser.email}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between p-3 rounded-xl bg-[#161922] border border-white/10">
-                <span className="text-gray-400">اسم حساب السوني (PSN ID):</span>
-                <strong className="text-white font-mono">{selectedUser.psnId || 'لم يُربط بعد'}</strong>
-              </div>
-              <div className="flex justify-between p-3 rounded-xl bg-[#161922] border border-white/10">
-                <span className="text-gray-400">تاريخ التسجيل:</span>
-                <strong className="text-white">
-                  {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleString('ar-SA') : 'غير متوفر'}
-                </strong>
-              </div>
-              <div className="flex justify-between p-3 rounded-xl bg-[#161922] border border-white/10">
-                <span className="text-gray-400">آخر تسجيل دخول:</span>
-                <strong className="text-white">
-                  {selectedUser.lastLoginAt ? new Date(selectedUser.lastLoginAt).toLocaleString('ar-SA') : 'غير متوفر'}
-                </strong>
-              </div>
-              <div className="flex justify-between p-3 rounded-xl bg-[#161922] border border-white/10">
-                <span className="text-gray-400">هل أرسل طلب توثيق؟:</span>
-                <strong className="text-white">
-                  {requests.some(r => r.userEmail.toLowerCase() === selectedUser.email.toLowerCase()) ? 'نعم، مسجل في الطلبات' : 'لا'}
-                </strong>
-              </div>
-              <div className="flex justify-between p-3 rounded-xl bg-[#161922] border border-white/10">
-                <span className="text-gray-400">حالة التوثيق:</span>
-                <strong className={selectedUser.isVerified ? 'text-emerald-400' : 'text-amber-400'}>
-                  {selectedUser.isVerified ? 'حساب موثق رسمي' : 'غير موثق'}
-                </strong>
-              </div>
-              <div className="flex justify-between p-3 rounded-xl bg-[#161922] border border-white/10">
-                <span className="text-gray-400">الرتبة في المنصة:</span>
-                <strong className="text-white">{selectedUser.role === 'admin' ? 'مدير' : 'لاعب'}</strong>
-              </div>
-
-              {/* Secret code visible to super admin */}
-              {isSuperAdmin && (
-                <div className="flex justify-between p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/20 text-emerald-300 font-mono">
-                  <span>كلمة السر المولدة:</span>
-                  <strong>{selectedUser.verificationSecret || 'غير منشأة'}</strong>
-                </div>
-              )}
-            </div>
-
-            {/* Actions: Ban / Unban */}
-            <div className="pt-3 border-t border-white/10 flex justify-between gap-3">
-              <button
-                onClick={() => handleToggleBan(selectedUser)}
-                className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-colors cursor-pointer ${
-                  selectedUser.isBanned 
-                    ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30' 
-                    : 'bg-rose-500/20 text-rose-300 hover:bg-rose-500/30'
-                }`}
-              >
-                {selectedUser.isBanned ? 'فك حظر اللاعب' : 'حظر اللاعب'}
-              </button>
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-colors cursor-pointer"
-              >
-                إغلاق
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 2: APPROVE VERIFICATION & ENTER 4 TROPHY COUNTS */}
+      {/* MODAL 1: APPROVE VERIFICATION & INPUT TROPHIES */}
       {approvingRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={() => setApprovingRequest(null)} />
-          <div className="relative bg-[#12141c] border border-white/20 rounded-3xl max-w-lg w-full p-6 md:p-8 space-y-6 z-10 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#12141c] border border-white/20 rounded-3xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl overflow-y-auto max-h-[90vh]">
             
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="flex items-start justify-between border-b border-white/10 pb-4">
               <div>
-                <h3 className="text-lg font-black text-white">تأكيد توثيق حساب السوني</h3>
-                <p className="text-xs text-gray-400 font-mono">PSN: {approvingRequest.psnId}</p>
+                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
+                  مراجعة واعتماد طلب توثيق
+                </span>
+                <h3 className="text-xl font-black text-white mt-1">
+                  الحساب: {approvingRequest.psnId}
+                </h3>
+                <p className="text-xs text-gray-400 font-mono">
+                  {approvingRequest.userEmail} - {approvingRequest.displayName}
+                </p>
               </div>
-              <button
+              <button 
                 onClick={() => setApprovingRequest(null)}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {/* Error in modal */}
             {approvalError && (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center gap-2 font-bold">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <span>{approvalError}</span>
               </div>
             )}
 
-            {/* Secret confirmation input */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-gray-300">
-                كلمة السر المرسلة من اللاعب في السوني:
+            {/* Step 1: Verify Password from PSN message */}
+            <div className="space-y-2 bg-[#161922] p-4 rounded-2xl border border-white/10">
+              <label className="block text-xs font-bold text-white flex items-center gap-1.5">
+                <KeyRound className="w-4 h-4 text-white" />
+                <span>1. إدخال كلمة السر التي وصلتك من اللاعب في السوني:</span>
               </label>
-              <div className="relative">
-                <KeyRound className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={inputSecret}
-                  onChange={(e) => setInputSecret(e.target.value)}
-                  placeholder="مثال: KC-4921"
-                  className="w-full bg-[#161922] border border-white/20 focus:border-white/40 rounded-xl pr-10 pl-4 py-2.5 text-sm text-white font-mono placeholder-gray-500 focus:outline-none"
-                />
-              </div>
+              <input
+                type="text"
+                value={inputSecret}
+                onChange={(e) => setInputSecret(e.target.value)}
+                placeholder="مثال: KC-8492"
+                className="w-full bg-[#12141c] border border-white/20 focus:border-white rounded-xl px-4 py-2.5 text-sm text-white font-mono placeholder-gray-600 focus:outline-none"
+              />
               <p className="text-[11px] text-gray-400">
-                تحقق من رسائل حساب السوني الخاص بك وتأكد من مطابقة الرمز الذي أرسله اللاعب.
+                يقوم النظام بالتحقق الآلي من تطابق كلمة السر هذه مع الكود السري الذي تم إنشاؤه لهذا الحساب.
               </p>
             </div>
 
-            {/* 4 Trophy Fields + Level */}
-            <div className="space-y-3 pt-2">
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
+            {/* Step 2: Trophy Stats Input (4 fields + Level) */}
+            <div className="space-y-3 bg-[#161922] p-4 rounded-2xl border border-white/10">
+              <label className="block text-xs font-bold text-white flex items-center gap-1.5">
                 <Trophy className="w-4 h-4 text-white" />
-                <span>إرفاق عدد التروفيات الرسمية الصحيحة الموجودة بالحساب:</span>
-              </div>
+                <span>2. إدخال إحصائيات التروفي في حسابه بالسوني:</span>
+              </label>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {/* Platinum */}
-                <div className="p-3 rounded-xl bg-[#161922] border border-white/10 space-y-1">
-                  <label className="text-[11px] font-bold text-gray-300 block">
-                    عدد البلاتينيوم:
-                  </label>
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold text-white">بلاتينيوم 💎</span>
                   <input
                     type="number"
                     min="0"
                     value={trophyInputs.platinum}
-                    onChange={(e) => setTrophyInputs(prev => ({ ...prev, platinum: parseInt(e.target.value) || 0 }))}
-                    className="w-full bg-black/60 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-white font-mono focus:outline-none"
+                    onChange={(e) => setTrophyInputs({ ...trophyInputs, platinum: parseInt(e.target.value) || 0 })}
+                    className="w-full bg-[#12141c] border border-white/20 rounded-xl p-2 text-xs text-white font-mono text-center focus:outline-none"
                   />
                 </div>
 
                 {/* Gold */}
-                <div className="p-3 rounded-xl bg-[#161922] border border-amber-500/20 space-y-1">
-                  <label className="text-[11px] font-bold text-amber-300 block">
-                    عدد الذهب:
-                  </label>
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold text-amber-300">ذهبي 🥇</span>
                   <input
                     type="number"
                     min="0"
                     value={trophyInputs.gold}
-                    onChange={(e) => setTrophyInputs(prev => ({ ...prev, gold: parseInt(e.target.value) || 0 }))}
-                    className="w-full bg-black/60 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-amber-200 font-mono focus:outline-none"
+                    onChange={(e) => setTrophyInputs({ ...trophyInputs, gold: parseInt(e.target.value) || 0 })}
+                    className="w-full bg-[#12141c] border border-amber-500/30 rounded-xl p-2 text-xs text-amber-200 font-mono text-center focus:outline-none"
                   />
                 </div>
 
                 {/* Silver */}
-                <div className="p-3 rounded-xl bg-[#161922] border border-slate-400/20 space-y-1">
-                  <label className="text-[11px] font-bold text-slate-300 block">
-                    عدد الفضة:
-                  </label>
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold text-slate-300">فضي 🥈</span>
                   <input
                     type="number"
                     min="0"
                     value={trophyInputs.silver}
-                    onChange={(e) => setTrophyInputs(prev => ({ ...prev, silver: parseInt(e.target.value) || 0 }))}
-                    className="w-full bg-black/60 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-slate-100 font-mono focus:outline-none"
+                    onChange={(e) => setTrophyInputs({ ...trophyInputs, silver: parseInt(e.target.value) || 0 })}
+                    className="w-full bg-[#12141c] border border-slate-300/30 rounded-xl p-2 text-xs text-slate-100 font-mono text-center focus:outline-none"
                   />
                 </div>
 
                 {/* Bronze */}
-                <div className="p-3 rounded-xl bg-[#161922] border border-orange-700/20 space-y-1">
-                  <label className="text-[11px] font-bold text-orange-300 block">
-                    عدد البرونز:
-                  </label>
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold text-orange-300">برونزي 🥉</span>
                   <input
                     type="number"
                     min="0"
                     value={trophyInputs.bronze}
-                    onChange={(e) => setTrophyInputs(prev => ({ ...prev, bronze: parseInt(e.target.value) || 0 }))}
-                    className="w-full bg-black/60 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-orange-200 font-mono focus:outline-none"
+                    onChange={(e) => setTrophyInputs({ ...trophyInputs, bronze: parseInt(e.target.value) || 0 })}
+                    className="w-full bg-[#12141c] border border-orange-700/30 rounded-xl p-2 text-xs text-orange-200 font-mono text-center focus:outline-none"
                   />
                 </div>
               </div>
 
-              {/* Level */}
-              <div className="p-3 rounded-xl bg-[#161922] border border-white/10 space-y-1">
-                <label className="text-[11px] font-bold text-gray-300 block">
-                  مستوى التروفي بالسوني (PSN Level):
-                </label>
+              {/* Level Input */}
+              <div className="pt-2 flex items-center justify-between gap-4">
+                <span className="text-xs font-bold text-gray-300">مستوى الحساب في السوني (Level):</span>
                 <input
                   type="number"
                   min="1"
+                  max="999"
                   value={trophyInputs.level}
-                  onChange={(e) => setTrophyInputs(prev => ({ ...prev, level: parseInt(e.target.value) || 1 }))}
-                  className="w-full bg-black/60 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-white font-mono focus:outline-none"
+                  onChange={(e) => setTrophyInputs({ ...trophyInputs, level: parseInt(e.target.value) || 1 })}
+                  className="w-24 bg-[#12141c] border border-white/20 rounded-xl py-1.5 px-3 text-xs text-white font-mono text-center focus:outline-none"
                 />
               </div>
             </div>
 
-            {/* Confirm buttons */}
-            <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={handleConfirmApproval}
-                className="flex-1 py-3 rounded-xl bg-white text-black hover:bg-gray-200 font-black text-xs transition-colors cursor-pointer shadow-lg flex items-center justify-center gap-2"
-              >
-                <Check className="w-4 h-4 text-black" />
-                <span>تأكيد التوثيق والإدراج بالمتصدرين</span>
-              </button>
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
               <button
                 type="button"
                 onClick={() => setApprovingRequest(null)}
-                className="px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-bold transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-bold cursor-pointer"
               >
                 إلغاء
               </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmApproval}
+                className="px-6 py-2.5 rounded-xl bg-white text-black hover:bg-gray-200 text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-lg"
+              >
+                <Check className="w-4 h-4" />
+                <span>تأكيد التوثيق ونشر الحساب بالمتصدرين</span>
+              </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: USER DETAILS */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#12141c] border border-white/20 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl">
+            <div className="flex items-start justify-between border-b border-white/10 pb-4">
+              <div>
+                <h3 className="text-lg font-black text-white">{selectedUser.displayName}</h3>
+                <p className="text-xs text-gray-400 font-mono">{selectedUser.email}</p>
+              </div>
+              <button onClick={() => setSelectedUser(null)} className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between py-1.5 border-b border-white/5">
+                <span className="text-gray-400">معرف السوني:</span>
+                <span className="font-mono font-bold text-white">{selectedUser.psnId || 'غير متوفر'}</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-white/5">
+                <span className="text-gray-400">حالة التوثيق:</span>
+                <span className="font-bold text-white">{selectedUser.isVerified ? 'موثق رسمياً' : 'غير موثق'}</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-white/5">
+                <span className="text-gray-400">تاريخ التسجيل:</span>
+                <span className="font-mono text-gray-300">{new Date(selectedUser.createdAt).toLocaleDateString('ar-SA')}</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-white/5">
+                <span className="text-gray-400">آخر تسجيل دخول:</span>
+                <span className="font-mono text-gray-300">{new Date(selectedUser.lastLoginAt).toLocaleString('ar-SA')}</span>
+              </div>
+              {isSuperAdmin && (
+                <div className="flex justify-between py-1.5 border-b border-white/5">
+                  <span className="text-gray-400">كلمة السر السرية:</span>
+                  <span className="font-mono font-bold text-white bg-white/10 px-2 py-0.5 rounded">{selectedUser.verificationSecret}</span>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setSelectedUser(null)}
+              className="w-full py-2.5 rounded-xl bg-white text-black font-bold text-xs hover:bg-gray-200"
+            >
+              إغلاق
+            </button>
           </div>
         </div>
       )}

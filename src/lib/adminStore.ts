@@ -6,6 +6,15 @@ const USERS_STORAGE_KEY = 'kachi_all_users_v3';
 const REQUESTS_STORAGE_KEY = 'kachi_verification_requests_v3';
 const ADMIN_EMAILS_KEY = 'kachi_admin_emails_v3';
 
+// Event names for zero-latency local & cross-tab broadcasting
+export const DATA_SYNC_EVENT = 'kachi_data_synced';
+
+export function broadcastDataChange(topic?: string) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(DATA_SYNC_EVENT, { detail: { topic, timestamp: Date.now() } }));
+  }
+}
+
 // Generates an unguessable 6-digit verification secret code (e.g. "KC-8492")
 export function generateRandomSecret(): string {
   const num = Math.floor(1000 + Math.random() * 9000);
@@ -14,7 +23,6 @@ export function generateRandomSecret(): string {
 
 // Initial sample users: Empty by default so only real authenticated and verified players appear
 const INITIAL_USERS: AppUserAccount[] = [];
-
 const INITIAL_REQUESTS: VerificationRequest[] = [];
 
 export function getStoredUsers(): AppUserAccount[] {
@@ -33,6 +41,7 @@ export function getStoredUsers(): AppUserAccount[] {
 export function saveUsers(users: AppUserAccount[]): void {
   try {
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+    broadcastDataChange('users');
   } catch (err) {
     console.error('Failed to save users', err);
   }
@@ -54,6 +63,7 @@ export function getStoredRequests(): VerificationRequest[] {
 export function saveRequests(requests: VerificationRequest[]): void {
   try {
     localStorage.setItem(REQUESTS_STORAGE_KEY, JSON.stringify(requests));
+    broadcastDataChange('requests');
   } catch (err) {
     console.error('Failed to save requests', err);
   }
@@ -84,6 +94,7 @@ export function saveAdminEmails(emails: string[]): void {
       clean.push(ADMIN_EMAIL.toLowerCase());
     }
     localStorage.setItem(ADMIN_EMAILS_KEY, JSON.stringify(clean));
+    broadcastDataChange('admins');
   } catch (err) {
     console.error('Failed to save admin emails', err);
   }
@@ -93,58 +104,29 @@ export function isUserAdmin(email?: string | null): boolean {
   if (!email) return false;
   const cleanEmail = email.trim().toLowerCase();
   if (cleanEmail === ADMIN_EMAIL.toLowerCase()) return true;
-  const list = getAdminEmails();
-  return list.includes(cleanEmail);
+  const adminList = getAdminEmails().map(e => e.toLowerCase());
+  return adminList.includes(cleanEmail);
 }
 
-export function addAdminEmail(email: string): { success: boolean; message: string } {
+export function isUserVerified(email?: string | null): boolean {
+  if (!email) return false;
   const cleanEmail = email.trim().toLowerCase();
-  if (!cleanEmail) {
-    return { success: false, message: 'يرجى إدخال البريد الإلكتروني.' };
-  }
-
+  if (cleanEmail === ADMIN_EMAIL.toLowerCase()) return true;
   const users = getStoredUsers();
   const user = users.find(u => u.email.toLowerCase() === cleanEmail);
-
-  if (!user) {
-    return { success: false, message: 'هذا البريد غير مسجل في المنصة. يجب على المستخدم تسجيل الدخول للموقع أولاً.' };
-  }
-
-  const admins = getAdminEmails();
-  if (admins.includes(cleanEmail)) {
-    return { success: false, message: 'هذا الحساب يمتلك صلاحية الإدارة بالفعل.' };
-  }
-
-  admins.push(cleanEmail);
-  saveAdminEmails(admins);
-
-  // Update user role
-  user.role = 'admin';
-  saveUsers(users);
-
-  return { success: true, message: `تمت إضافة ${cleanEmail} إلى فريق الإدارة بنجاح.` };
+  return !!user?.isVerified && !user?.isBanned;
 }
 
-export function removeAdminEmail(email: string): { success: boolean; message: string } {
+export function isUserBanned(email?: string | null): boolean {
+  if (!email) return false;
   const cleanEmail = email.trim().toLowerCase();
-  if (cleanEmail === ADMIN_EMAIL.toLowerCase()) {
-    return { success: false, message: 'لا يمكن إزالة مدير النظام الرئيسي.' };
-  }
-
-  const admins = getAdminEmails().filter(e => e !== cleanEmail);
-  saveAdminEmails(admins);
-
+  if (cleanEmail === ADMIN_EMAIL.toLowerCase()) return false;
   const users = getStoredUsers();
   const user = users.find(u => u.email.toLowerCase() === cleanEmail);
-  if (user) {
-    user.role = 'user';
-    saveUsers(users);
-  }
-
-  return { success: true, message: `تمت إزالة صلاحية الإدارة عن ${cleanEmail}.` };
+  return !!user?.isBanned;
 }
 
-// Sync logged-in Firebase user into store
+// Ensure logged-in user is created/updated in the master users list instantly
 export function syncCurrentUserRecord(user: { uid: string; email?: string | null; displayName?: string | null; photoURL?: string | null }): AppUserAccount {
   const users = getStoredUsers();
   const email = (user.email || '').trim().toLowerCase();
@@ -258,31 +240,26 @@ export function approveVerificationWithTrophies(
 ): { success: boolean; message: string } {
   const requests = getStoredRequests();
   const req = requests.find(r => r.id === requestId);
-  if (!req) return { success: false, message: 'الطلب غير موجود.' };
 
-  if (!verifySecretMatches(requestId, enteredSecret)) {
-    return { success: false, message: 'كلمة السر غير صحيحة! يرجى التأكد من كلمة السر المرسلة من حساب اللاعب في السوني.' };
+  if (!req) {
+    return { success: false, message: 'طلب التوثيق غير موجود.' };
   }
 
-  const plat = Math.max(0, Number(trophies.platinum) || 0);
-  const gold = Math.max(0, Number(trophies.gold) || 0);
-  const silver = Math.max(0, Number(trophies.silver) || 0);
-  const bronze = Math.max(0, Number(trophies.bronze) || 0);
-  const total = plat + gold + silver + bronze;
+  // Verify that the entered secret matches the generated user password
+  if (req.verificationSecret.trim().toUpperCase() !== enteredSecret.trim().toUpperCase()) {
+    return {
+      success: false,
+      message: `كلمة السر غير صحيحة! كلمة السر المسجلة في النظام لهذا الطلب هي (${req.verificationSecret}). يرجى التأكد من الرسالة المرسلة في حساب السوني.`
+    };
+  }
 
-  // Calculate trophy level based on PlayStation formula points if not provided:
-  // bronze=15, silver=30, gold=90, plat=300
-  const calculatedPoints = (bronze * 15) + (silver * 30) + (gold * 90) + (plat * 300);
-  const calculatedLevel = trophies.level && Number(trophies.level) > 0 
-    ? Number(trophies.level) 
-    : Math.max(1, Math.floor(calculatedPoints / 600) + 1);
-
+  const total = trophies.platinum + trophies.gold + trophies.silver + trophies.bronze;
   const trophyStats: TrophyStats = {
-    platinum: plat,
-    gold,
-    silver,
-    bronze,
-    level: calculatedLevel,
+    platinum: trophies.platinum || 0,
+    gold: trophies.gold || 0,
+    silver: trophies.silver || 0,
+    bronze: trophies.bronze || 0,
+    level: trophies.level || Math.max(1, Math.floor((trophies.platinum * 300 + trophies.gold * 90 + trophies.silver * 30 + trophies.bronze * 15) / 100)),
     total
   };
 
@@ -290,21 +267,23 @@ export function approveVerificationWithTrophies(
   req.reviewedAt = new Date().toISOString();
   req.reviewedBy = reviewerEmail;
   req.trophyStats = trophyStats;
+  req.notes = 'تم التحقق من كلمة السر بنجاح والموافقة على توثيق الحساب وإدراجه في لوحة المتصدرين.';
   saveRequests(requests);
 
-  // Update user in users list
+  // Update master users table
   const users = getStoredUsers();
-  const user = users.find(u => u.email.toLowerCase() === req.userEmail.toLowerCase());
-  if (user) {
-    user.isVerified = true;
-    user.psnId = req.psnId;
-    user.trophyStats = trophyStats;
+  const userIdx = users.findIndex(u => u.email.toLowerCase() === req.userEmail.toLowerCase());
+  if (userIdx >= 0) {
+    users[userIdx].isVerified = true;
+    users[userIdx].psnId = req.psnId;
+    users[userIdx].trophyStats = trophyStats;
     saveUsers(users);
   }
 
-  return { success: true, message: `تم توثيق حساب اللاعب ${req.psnId} بنجاح وإدراجه في لوحة المتصدرين!` };
+  return { success: true, message: `تم توثيق حساب (${req.psnId}) بنجاح وربط إحصائيات التروفي في لوحة المتصدرين!` };
 }
 
+// Reject verification request
 export function rejectVerificationRequest(requestId: string, reason?: string): boolean {
   const requests = getStoredRequests();
   const req = requests.find(r => r.id === requestId);
@@ -312,44 +291,71 @@ export function rejectVerificationRequest(requestId: string, reason?: string): b
 
   req.status = 'rejected';
   req.reviewedAt = new Date().toISOString();
-  if (reason) req.notes = reason;
+  req.reviewedBy = ADMIN_EMAIL;
+  req.notes = reason || 'تم رفض الطلب لعدم تطابق البيانات أو عدم إرسال الرسالة.';
   saveRequests(requests);
-
-  const users = getStoredUsers();
-  const user = users.find(u => u.email.toLowerCase() === req.userEmail.toLowerCase());
-  if (user) {
-    user.isVerified = false;
-    saveUsers(users);
-  }
-
   return true;
 }
 
-export function toggleUserBan(uid: string): { success: boolean; isBanned: boolean } {
+// Toggle ban status for a user
+export function toggleUserBan(uid: string): { success: boolean; isBanned: boolean; message: string } {
   const users = getStoredUsers();
-  const index = users.findIndex(u => u.uid === uid);
-  if (index === -1) return { success: false, isBanned: false };
+  const idx = users.findIndex(u => u.uid === uid);
+  if (idx < 0) return { success: false, isBanned: false, message: 'المستخدم غير موجود' };
 
-  if (users[index].email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-    return { success: false, isBanned: false };
+  if (users[idx].email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    return { success: false, isBanned: false, message: 'لا يمكن حظر حساب مدير النظام الرئيسي' };
   }
 
-  users[index].isBanned = !users[index].isBanned;
+  users[idx].isBanned = !users[idx].isBanned;
   saveUsers(users);
-  return { success: true, isBanned: users[index].isBanned };
+  return { 
+    success: true, 
+    isBanned: users[idx].isBanned, 
+    message: users[idx].isBanned ? 'تم حظر المستخدم بنجاح' : 'تم فك حظر المستخدم' 
+  };
 }
 
-export function isUserVerified(email?: string | null): boolean {
-  if (!email) return false;
-  if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) return true;
+// Admin Email Management
+export function addAdminEmail(newEmail: string): { success: boolean; message: string } {
+  const clean = newEmail.trim().toLowerCase();
+  if (!clean || !clean.includes('@')) {
+    return { success: false, message: 'يرجى إدخال بريد إلكتروني صحيح' };
+  }
+  const current = getAdminEmails();
+  if (current.includes(clean)) {
+    return { success: false, message: 'هذا البريد مضاف بالفعل كمدير' };
+  }
+  current.push(clean);
+  saveAdminEmails(current);
+
+  // Also update user record role if exists
   const users = getStoredUsers();
-  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-  return !!user?.isVerified;
+  const user = users.find(u => u.email.toLowerCase() === clean);
+  if (user) {
+    user.role = 'admin';
+    saveUsers(users);
+  }
+
+  return { success: true, message: `تمت إضافة (${clean}) كمدير نظام بنجاح` };
 }
 
-export function isUserBanned(email?: string | null): boolean {
-  if (!email) return false;
+export function removeAdminEmail(emailToRemove: string): { success: boolean; message: string } {
+  const clean = emailToRemove.trim().toLowerCase();
+  if (clean === ADMIN_EMAIL.toLowerCase()) {
+    return { success: false, message: 'لا يمكن حذف المدير الرئيسي للموقع' };
+  }
+  let current = getAdminEmails();
+  current = current.filter(e => e.toLowerCase() !== clean);
+  saveAdminEmails(current);
+
+  // Update user record role
   const users = getStoredUsers();
-  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-  return !!user?.isBanned;
+  const user = users.find(u => u.email.toLowerCase() === clean);
+  if (user) {
+    user.role = 'user';
+    saveUsers(users);
+  }
+
+  return { success: true, message: `تمت إزالة صلاحيات الإدارة من (${clean})` };
 }

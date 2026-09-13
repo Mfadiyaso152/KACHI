@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { signInWithGoogle, signInWithMicrosoft, User } from '../lib/firebase';
+import { signInWithGoogle, User } from '../lib/firebase';
 import { Logo } from './Logo';
 import { ShieldCheck, AlertCircle, FileText } from 'lucide-react';
 import { TermsModal } from './TermsModal';
@@ -11,7 +11,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
-  const [loadingProvider, setLoadingProvider] = useState<'google' | 'microsoft' | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
 
@@ -19,22 +19,9 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
 
   const handleGoogleSignIn = async () => {
     setError(null);
-    setLoadingProvider('google');
+    setLoading(true);
     const result = await signInWithGoogle();
-    setLoadingProvider(null);
-    if (result.error) {
-      setError(result.error);
-    } else if (result.user) {
-      onSuccess?.(result.user);
-      onClose();
-    }
-  };
-
-  const handleMicrosoftSignIn = async () => {
-    setError(null);
-    setLoadingProvider('microsoft');
-    const result = await signInWithMicrosoft();
-    setLoadingProvider(null);
+    setLoading(false);
     if (result.error) {
       setError(result.error);
     } else if (result.user) {
@@ -77,15 +64,15 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             </div>
           )}
 
-          {/* Buttons */}
+          {/* Sign in Button */}
           <div className="space-y-3">
             {/* Google Button */}
             <button
               onClick={handleGoogleSignIn}
-              disabled={loadingProvider !== null}
+              disabled={loading}
               className="w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-2xl bg-white hover:bg-gray-100 text-black font-bold text-sm transition-all duration-200 shadow-md cursor-pointer disabled:opacity-50"
             >
-              {loadingProvider === 'google' ? (
+              {loading ? (
                 <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
               ) : (
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -109,25 +96,6 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
               )}
               <span>تسجيل الدخول بواسطة Google</span>
             </button>
-
-            {/* Microsoft Button */}
-            <button
-              onClick={handleMicrosoftSignIn}
-              disabled={loadingProvider !== null}
-              className="w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-2xl bg-[#1c202d] hover:bg-[#252a3a] border border-white/15 text-white font-bold text-sm transition-all duration-200 shadow-md cursor-pointer disabled:opacity-50"
-            >
-              {loadingProvider === 'microsoft' ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <svg className="w-5 h-5" viewBox="0 0 23 23">
-                  <path fill="#f35325" d="M1 1h10v10H1z" />
-                  <path fill="#81bc06" d="M12 1h10v10H12z" />
-                  <path fill="#05a6f0" d="M1 12h10v10H1z" />
-                  <path fill="#ffba08" d="M12 12h10v10H12z" />
-                </svg>
-              )}
-              <span>تسجيل الدخول بواسطة Microsoft</span>
-            </button>
           </div>
 
           {/* Terms and Conditions Acceptance Link */}
@@ -150,7 +118,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           <div className="pt-3 border-t border-white/10 text-center space-y-2">
             <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
               <ShieldCheck className="w-3.5 h-3.5 text-gray-400" />
-              <span>تسجيل آمن ومحمي عبر خدمات Firebase الرسمية</span>
+              <span>تسجيل فوري وآمن ومحمي عبر خدمات Google Firebase الرسمية</span>
             </div>
             <button
               onClick={onClose}

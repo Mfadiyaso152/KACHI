@@ -2,7 +2,6 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getAuth, 
   GoogleAuthProvider, 
-  OAuthProvider, 
   signInWithPopup, 
   signOut as firebaseSignOut,
   onAuthStateChanged,
@@ -25,7 +24,6 @@ export const auth = getAuth(app);
 
 // Auth Providers
 export const googleProvider = new GoogleAuthProvider();
-export const microsoftProvider = new OAuthProvider('microsoft.com');
 
 // Helper sign in functions
 export async function signInWithGoogle() {
@@ -34,15 +32,6 @@ export async function signInWithGoogle() {
     return { user: result.user, error: null };
   } catch (error: any) {
     return { user: null, error: error?.message || 'فشل تسجيل الدخول بواسطة Google' };
-  }
-}
-
-export async function signInWithMicrosoft() {
-  try {
-    const result = await signInWithPopup(auth, microsoftProvider);
-    return { user: result.user, error: null };
-  } catch (error: any) {
-    return { user: null, error: error?.message || 'فشل تسجيل الدخول بواسطة Microsoft' };
   }
 }
 

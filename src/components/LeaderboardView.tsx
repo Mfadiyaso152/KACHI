@@ -1,14 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Award, ShieldCheck, Trophy, Search, Sparkles } from 'lucide-react';
-import { getStoredUsers } from '../lib/adminStore';
+import { getStoredUsers, DATA_SYNC_EVENT } from '../lib/adminStore';
 
 export function LeaderboardView() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [usersList, setUsersList] = useState(getStoredUsers());
+
+  // Real-time synchronization
+  useEffect(() => {
+    const updateList = () => {
+      setUsersList(getStoredUsers());
+    };
+
+    window.addEventListener(DATA_SYNC_EVENT, updateList);
+    window.addEventListener('storage', updateList);
+    const interval = setInterval(updateList, 1000);
+
+    return () => {
+      window.removeEventListener(DATA_SYNC_EVENT, updateList);
+      window.removeEventListener('storage', updateList);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Get verified non-banned users from storage with PSN ID and trophy stats
-  const allVerified = getStoredUsers().filter(u => u.isVerified && !u.isBanned && u.psnId);
+  const allVerified = usersList.filter(u => u.isVerified && !u.isBanned && u.psnId);
 
   // Sort by level descending, then platinum, then gold, then total
   const sortedUsers = [...allVerified].sort((a, b) => {
@@ -103,7 +121,6 @@ export function LeaderboardView() {
                         <svg viewBox="0 0 24 24" className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="7" r="4" />
                           <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2" />
-                          {/* Anonymous visor bar across eyes */}
                           <line x1="7" y1="7" x2="17" y2="7" strokeWidth="2.5" stroke="currentColor" />
                         </svg>
                         <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border border-[#12141c] flex items-center justify-center">
