@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { signInWithGoogle, User } from '../lib/firebase';
 import { Logo } from './Logo';
-import { ShieldCheck, AlertCircle, FileText } from 'lucide-react';
+import { ShieldCheck, AlertCircle, FileText, X } from 'lucide-react';
 import { TermsModal } from './TermsModal';
 
 interface AuthModalProps {
@@ -42,11 +42,21 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
         {/* Modal */}
         <div className="relative bg-[#12141c] border border-white/20 rounded-3xl max-w-md w-full p-6 md:p-8 space-y-6 z-10 shadow-2xl overflow-hidden">
           
+          {/* Close (X) Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-5 left-5 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer z-20"
+            title="إغلاق"
+            aria-label="إغلاق"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
           {/* Glow */}
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-white/5 rounded-full blur-3xl pointer-events-none" />
 
           {/* Header with Logo */}
-          <div className="text-center space-y-3">
+          <div className="text-center space-y-3 pt-2">
             <div className="flex justify-center">
               <Logo showText={true} />
             </div>
@@ -98,34 +108,18 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             </button>
           </div>
 
-          {/* Terms and Conditions Acceptance Link */}
-          <div className="text-center pt-2">
-            <p className="text-[11px] text-gray-400 leading-relaxed">
-              بتسجيل دخولك، فإنك توافق على{' '}
+          {/* Terms and Conditions Acceptance Text Only as requested */}
+          <div className="text-center pt-1">
+            <p className="text-xs text-gray-400 leading-relaxed">
+              بالمتابعة فإنك توافق على{' '}
               <button
                 type="button"
                 onClick={() => setIsTermsOpen(true)}
-                className="text-white underline underline-offset-4 hover:text-gray-200 font-bold cursor-pointer inline-flex items-center gap-1"
+                className="text-white underline underline-offset-4 hover:text-gray-200 font-bold cursor-pointer inline"
               >
-                <FileText className="w-3 h-3 inline" />
-                <span>الشروط والأحكام</span>
-              </button>{' '}
-              الخاصة بمنصة كاتشي.
+                الشروط والأحكام
+              </button>
             </p>
-          </div>
-
-          {/* Security & note */}
-          <div className="pt-3 border-t border-white/10 text-center space-y-2">
-            <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
-              <ShieldCheck className="w-3.5 h-3.5 text-gray-400" />
-              <span>تسجيل فوري وآمن ومحمي عبر خدمات Google Firebase الرسمية</span>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-xs text-gray-400 hover:text-white transition-colors cursor-pointer"
-            >
-              إلغاء والمتابعة كزائر
-            </button>
           </div>
 
         </div>

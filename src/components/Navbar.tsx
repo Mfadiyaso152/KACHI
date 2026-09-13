@@ -45,13 +45,14 @@ export function Navbar({
     <header className="sticky top-0 z-40 bg-[#0c0d12]/90 backdrop-blur-md border-b border-white/10 px-4 lg:px-8 py-3.5 transition-all">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         
-        {/* Left side: Logo */}
+        {/* Left side: Logo without text (icon/emblem only) */}
         <div className="flex items-center gap-3 md:gap-4 order-1 md:order-1">
           <div 
             onClick={() => navigate('/')}
             className="cursor-pointer flex items-center flex-shrink-0"
+            title="كاتشي KACHI"
           >
-            <Logo />
+            <Logo showText={false} />
           </div>
         </div>
 
@@ -136,7 +137,7 @@ export function Navbar({
                   <UserIcon className="w-4 h-4 text-gray-300" />
                 )}
                 <span className="font-medium max-w-[120px] sm:max-w-[180px] truncate flex items-center gap-1">
-                  <span>مرحباً {currentUser.displayName || currentUser.email?.split('@')[0]}</span>
+                  <span>{currentUser.displayName || currentUser.email?.split('@')[0]}</span>
                   {isUserVerified && (
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 inline" title="حساب موثق" />
                   )}

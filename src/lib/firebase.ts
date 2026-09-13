@@ -7,6 +7,16 @@ import {
   onAuthStateChanged,
   User 
 } from 'firebase/auth';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  setDoc, 
+  getDocs, 
+  onSnapshot, 
+  query, 
+  orderBy 
+} from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDWBGuW5JLDmt-wzNqh883JrnAh5rt3950",
@@ -18,9 +28,10 @@ const firebaseConfig = {
   measurementId: "G-BMKM5X86TN"
 };
 
-// Initialize Firebase safely (avoid multiple initializations)
+// Initialize Firebase safely
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export const db = getFirestore(app);
 
 // Auth Providers
 export const googleProvider = new GoogleAuthProvider();
@@ -44,5 +55,14 @@ export async function logOut() {
   }
 }
 
-export { onAuthStateChanged };
+export { 
+  onAuthStateChanged, 
+  collection, 
+  doc, 
+  setDoc, 
+  getDocs, 
+  onSnapshot, 
+  query, 
+  orderBy 
+};
 export type { User };

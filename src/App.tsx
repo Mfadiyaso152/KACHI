@@ -18,7 +18,9 @@ import {
   ADMIN_EMAIL, 
   syncCurrentUserRecord, 
   isUserVerified, 
-  isUserBanned 
+  isUserBanned,
+  DATA_SYNC_EVENT,
+  initGlobalFirestoreListeners 
 } from './lib/adminStore';
 
 function ScrollToTop() {
@@ -37,26 +39,49 @@ export default function App() {
   const [userVerified, setUserVerified] = useState(false);
   const [userBanned, setUserBanned] = useState(false);
 
-  // Sync user state with admin store & checks
+  // Check and sync user state
+  const refreshUserStatus = (user: User | null) => {
+    if (user && user.email) {
+      syncCurrentUserRecord({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL
+      });
+      setUserVerified(isUserVerified(user.email));
+      setUserBanned(isUserBanned(user.email));
+    } else {
+      setUserVerified(false);
+      setUserBanned(false);
+    }
+  };
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    // Start global real-time cloud listeners for users and verification requests
+    const cleanupFirestore = initGlobalFirestoreListeners();
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      if (user) {
-        syncCurrentUserRecord({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL
-        });
-        setUserVerified(isUserVerified(user.email));
-        setUserBanned(isUserBanned(user.email));
-      } else {
-        setUserVerified(false);
-        setUserBanned(false);
-      }
+      refreshUserStatus(user);
     });
-    return () => unsubscribe();
-  }, []);
+
+    const handleSync = () => {
+      if (currentUser?.email) {
+        setUserVerified(isUserVerified(currentUser.email));
+        setUserBanned(isUserBanned(currentUser.email));
+      }
+    };
+
+    window.addEventListener(DATA_SYNC_EVENT, handleSync);
+    window.addEventListener('storage', handleSync);
+
+    return () => {
+      cleanupFirestore();
+      unsubscribeAuth();
+      window.removeEventListener(DATA_SYNC_EVENT, handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, [currentUser?.email]);
 
   const handleLogOut = async () => {
     await logOut();
@@ -64,33 +89,31 @@ export default function App() {
     setUserBanned(false);
   };
 
-  const isCurrentAdmin = currentUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-
   return (
     <div className="min-h-screen bg-[#0c0d12] text-gray-100 flex flex-col font-['Tajawal',sans-serif]">
       <ScrollToTop />
       
-      {/* Navbar with 3-lines menu icon on right, Navigation & Auth */}
+      {/* Navbar */}
       <Navbar
         onToggleSidebar={() => setIsSidebarOpen(true)}
         currentUser={currentUser}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onLogOut={handleLogOut}
-        isUserVerified={userVerified || isCurrentAdmin}
+        isUserVerified={userVerified}
       />
 
-      {/* Slide-out Sidebar opening from the right */}
+      {/* Slide-out Sidebar */}
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         currentUser={currentUser}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onLogOut={handleLogOut}
-        isUserVerified={userVerified || isCurrentAdmin}
+        isUserVerified={userVerified}
       />
 
-      {/* Main Content Area with Page Route Transitions */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 pt-8">
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 pt-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -122,7 +145,7 @@ export default function App() {
                   <VerificationView 
                     currentUser={currentUser}
                     onOpenAuth={() => setIsAuthModalOpen(true)}
-                    isVerified={userVerified || isCurrentAdmin}
+                    isVerified={userVerified}
                   />
                 } 
               />
@@ -145,20 +168,13 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* Authentication Modal (Google / Microsoft via Firebase) */}
+      {/* Authentication Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={(user) => {
           setCurrentUser(user);
-          syncCurrentUserRecord({
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL
-          });
-          setUserVerified(isUserVerified(user.email));
-          setUserBanned(isUserBanned(user.email));
+          refreshUserStatus(user);
         }}
       />
 

@@ -56,17 +56,16 @@ export function HomeView() {
           {/* Card 1: Trophies */}
           <div 
             onClick={() => navigate('/games')}
-            className="group p-8 rounded-3xl bg-[#12141c] border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer space-y-4 hover:-translate-y-1 relative overflow-hidden"
+            className="group p-8 rounded-3xl bg-[#12141c] border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer space-y-4 hover:-translate-y-1 relative overflow-hidden flex flex-col justify-between"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-              <Gamepad2 className="w-7 h-7" />
+            <div className="space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                <Gamepad2 className="w-7 h-7" />
+              </div>
+              <h3 className="text-xl font-bold text-white group-hover:text-gray-200 transition-colors">
+                تروفيات
+              </h3>
             </div>
-            <h3 className="text-xl font-bold text-white group-hover:text-gray-200 transition-colors">
-              تروفيات
-            </h3>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              تصفح أشهر ألعاب البلايستيشن، الصعوبة، الوقت المقدر، التروفيات القابلة للفقد، وخدمة طريق البلاتينيوم لكل لعبة.
-            </p>
             <div className="flex items-center gap-1 text-white font-semibold text-sm pt-2">
               <span>تصفح تروفيات الألعاب</span>
               <ChevronRight className="w-4 h-4 transform rotate-180" />
@@ -76,17 +75,16 @@ export function HomeView() {
           {/* Card 2: Leaderboard */}
           <div 
             onClick={() => navigate('/leaderboard')}
-            className="group p-8 rounded-3xl bg-[#12141c] border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer space-y-4 hover:-translate-y-1 relative overflow-hidden"
+            className="group p-8 rounded-3xl bg-[#12141c] border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer space-y-4 hover:-translate-y-1 relative overflow-hidden flex flex-col justify-between"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-              <Award className="w-7 h-7" />
+            <div className="space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                <Award className="w-7 h-7" />
+              </div>
+              <h3 className="text-xl font-bold text-white group-hover:text-gray-200 transition-colors">
+                لوحة المتصدرين
+              </h3>
             </div>
-            <h3 className="text-xl font-bold text-white group-hover:text-gray-200 transition-colors">
-              لوحة المتصدرين
-            </h3>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              قائمة أفضل اللاعبين وصائدي تروفيات البلاتينيوم على مستوى المملكة.
-            </p>
             <div className="flex items-center gap-1 text-white font-semibold text-sm pt-2">
               <span>شاهد المتصدرين</span>
               <ChevronRight className="w-4 h-4 transform rotate-180" />
@@ -96,17 +94,16 @@ export function HomeView() {
           {/* Card 3: Verification */}
           <div 
             onClick={() => navigate('/verify')}
-            className="group p-8 rounded-3xl bg-[#12141c] border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer space-y-4 hover:-translate-y-1 relative overflow-hidden"
+            className="group p-8 rounded-3xl bg-[#12141c] border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer space-y-4 hover:-translate-y-1 relative overflow-hidden flex flex-col justify-between"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-              <ShieldCheck className="w-7 h-7" />
+            <div className="space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                <ShieldCheck className="w-7 h-7" />
+              </div>
+              <h3 className="text-xl font-bold text-white group-hover:text-gray-200 transition-colors">
+                توثيق الحساب
+              </h3>
             </div>
-            <h3 className="text-xl font-bold text-white group-hover:text-gray-200 transition-colors">
-              توثيق الحساب
-            </h3>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              خدمة توثيق حسابات سوني PSN (معلقة ومتاحة للتجربة في النسخة الحالية).
-            </p>
             <div className="flex items-center gap-1 text-white font-semibold text-sm pt-2">
               <span>صفحة التوثيق</span>
               <ChevronRight className="w-4 h-4 transform rotate-180" />

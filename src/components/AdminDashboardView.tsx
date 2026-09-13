@@ -1,62 +1,50 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { 
   Users, 
   ShieldCheck, 
-  ShieldAlert, 
-  Search, 
-  Lock, 
-  KeyRound, 
   Check, 
   X, 
+  KeyRound, 
+  Trophy, 
+  AlertCircle, 
+  Lock, 
+  UserX, 
   UserCheck, 
-  Clock, 
-  Mail, 
-  Gamepad2, 
-  Plus, 
-  Trash2, 
-  Trophy,
-  AlertCircle,
-  Eye,
-  Sparkles,
-  RefreshCw
+  Search, 
+  UserPlus, 
+  Crown, 
+  Copy, 
+  UserMinus 
 } from 'lucide-react';
 import { 
   ADMIN_EMAIL, 
   getStoredUsers, 
   getStoredRequests, 
-  toggleUserBan, 
+  getAdminEmails, 
+  isUserAdmin, 
   approveVerificationWithTrophies, 
-  rejectVerificationRequest,
-  getAdminEmails,
-  addAdminEmail,
-  removeAdminEmail,
-  isUserAdmin,
-  DATA_SYNC_EVENT
+  rejectVerificationRequest, 
+  toggleUserBan, 
+  promoteUserToAdmin, 
+  demoteUserFromAdmin, 
+  DATA_SYNC_EVENT 
 } from '../lib/adminStore';
-import { AppUserAccount, VerificationRequest } from '../types';
+import { AppUserAccount, VerificationRequest, TrophyStats } from '../types';
 
-interface AdminDashboardViewProps {
+interface AdminDashboardProps {
   currentUserEmail?: string | null;
 }
 
-export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps) {
-  const [activeTab, setActiveTab] = useState<'requests' | 'users' | 'admins'>('requests');
-  
+export function AdminDashboardView({ currentUserEmail }: AdminDashboardProps) {
   const [users, setUsers] = useState<AppUserAccount[]>([]);
   const [requests, setRequests] = useState<VerificationRequest[]>([]);
   const [adminEmails, setAdminEmails] = useState<string[]>([]);
-  
-  // Search & Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [actionNotice, setActionNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<'requests' | 'users' | 'admins'>('requests');
 
-  // Selected User Modal for detailed view
-  const [selectedUser, setSelectedUser] = useState<AppUserAccount | null>(null);
-
-  // Approval Modal State (Verification Request Modal)
+  // Verification approval modal state
   const [approvingRequest, setApprovingRequest] = useState<VerificationRequest | null>(null);
   const [inputSecret, setInputSecret] = useState('');
-  const [trophyInputs, setTrophyInputs] = useState({
+  const [trophyInputs, setTrophyInputs] = useState<TrophyStats>({
     platinum: 0,
     gold: 0,
     silver: 0,
@@ -65,11 +53,12 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
   });
   const [approvalError, setApprovalError] = useState<string | null>(null);
 
-  // New Admin Email Form
-  const [newAdminEmail, setNewAdminEmail] = useState('');
+  // Management states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUserToPromote, setSelectedUserToPromote] = useState('');
+  const [actionNotice, setActionNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [copiedSecretId, setCopiedSecretId] = useState<string | null>(null);
 
-  // Super Admin Check
-  const isSuperAdmin = currentUserEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const hasAdminAccess = isUserAdmin(currentUserEmail);
 
   const loadData = () => {
@@ -78,7 +67,6 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
     setAdminEmails(getAdminEmails());
   };
 
-  // Real-time synchronization listeners (Instant broadcast + cross-tab + interval fallback)
   useEffect(() => {
     loadData();
 
@@ -86,28 +74,24 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
       loadData();
     };
 
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key?.startsWith('kachi_')) {
-        loadData();
-      }
-    };
-
     window.addEventListener(DATA_SYNC_EVENT, handleSync);
-    window.addEventListener('storage', handleStorage);
-    
-    // High-frequency polling (every 1 second) to guarantee 0-delay updates
-    const timer = setInterval(loadData, 1000);
+    window.addEventListener('storage', handleSync);
 
     return () => {
       window.removeEventListener(DATA_SYNC_EVENT, handleSync);
-      window.removeEventListener('storage', handleStorage);
-      clearInterval(timer);
+      window.removeEventListener('storage', handleSync);
     };
   }, []);
 
   const triggerNotice = (type: 'success' | 'error', message: string) => {
     setActionNotice({ type, message });
     setTimeout(() => setActionNotice(null), 4000);
+  };
+
+  const handleCopySecret = (secret: string, id: string) => {
+    navigator.clipboard.writeText(secret);
+    setCopiedSecretId(id);
+    setTimeout(() => setCopiedSecretId(null), 2000);
   };
 
   // 1. Verification Approval Workflow
@@ -170,14 +154,14 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
     }
   };
 
-  // 3. Admin Management
-  const handleAddAdmin = (e: FormEvent) => {
+  // 3. Promote User to Admin by selecting from existing users
+  const handlePromoteSelectedUser = (e: FormEvent) => {
     e.preventDefault();
-    if (!newAdminEmail.trim()) return;
+    if (!selectedUserToPromote) return;
 
-    const res = addAdminEmail(newAdminEmail.trim());
+    const res = promoteUserToAdmin(selectedUserToPromote);
     if (res.success) {
-      setNewAdminEmail('');
+      setSelectedUserToPromote('');
       loadData();
       triggerNotice('success', res.message);
     } else {
@@ -185,17 +169,18 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
     }
   };
 
-  const handleRemoveAdmin = (email: string) => {
+  // 4. Demote Admin
+  const handleDemoteAdmin = (email: string) => {
     if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-      alert('لا يمكن حذف المدير الرئيسي.');
+      triggerNotice('error', 'لا يمكن إزالة المدير الرئيسي.');
       return;
     }
-    if (confirm(`هل أنت متأكد من إزالة صلاحيات الإدارة عن (${email})؟`)) {
-      const res = removeAdminEmail(email);
-      if (res.success) {
-        loadData();
-        triggerNotice('success', res.message);
-      }
+    const res = demoteUserFromAdmin(email);
+    if (res.success) {
+      loadData();
+      triggerNotice('success', res.message);
+    } else {
+      triggerNotice('error', res.message);
     }
   };
 
@@ -206,9 +191,6 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
           <Lock className="w-8 h-8" />
         </div>
         <h2 className="text-2xl font-bold text-white">منطقة محمية - للمدراء فقط</h2>
-        <p className="text-sm text-gray-400">
-          هذه الصفحة مخصصة لمدراء منصة كاتشي لمراجعة طلبات التوثيق وإدارة اللاعبين.
-        </p>
         <p className="text-xs text-gray-500 font-mono">
           حسابك الحالي: {currentUserEmail || 'غير مسجل الدخول'}
         </p>
@@ -231,42 +213,12 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
     );
   });
 
+  // Non-admin users list for selection dropdown
+  const nonAdminUsers = users.filter(u => u.email && !adminEmails.includes(u.email.toLowerCase()));
+
   return (
-    <div className="space-y-8 pb-20 max-w-6xl mx-auto">
+    <div className="space-y-5 pb-20 max-w-6xl mx-auto">
       
-      {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-[#12141c] border border-white/15 p-6 rounded-3xl shadow-xl">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-white/10 text-white text-xs font-bold border border-white/20">
-              لوحة الإدارة والتحكم
-            </span>
-            <span className="flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              تحديث فوري مباشر
-            </span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black text-white">
-            إدارة المنصة والمستخدمين
-          </h1>
-          <p className="text-xs text-gray-400">
-            مرحباً {currentUserEmail} - يمكنك اعتماد التوثيقات بكلمة السر وإدارة المستخدمين فوراً
-          </p>
-        </div>
-
-        {/* Global Stats */}
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="flex-1 md:flex-initial px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-center">
-            <div className="text-[11px] text-gray-400 font-bold">طلبات بالانتظار</div>
-            <div className="text-xl font-black text-white font-mono">{pendingRequests.length}</div>
-          </div>
-          <div className="flex-1 md:flex-initial px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-center">
-            <div className="text-[11px] text-gray-400 font-bold">إجمالي المسجلين</div>
-            <div className="text-xl font-black text-white font-mono">{users.length}</div>
-          </div>
-        </div>
-      </div>
-
       {/* Notice banner */}
       {actionNotice && (
         <div className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-2 border ${
@@ -279,276 +231,334 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
         </div>
       )}
 
-      {/* Tab Controls */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-4 overflow-x-auto">
+      {/* Pure 3-Tab Grid Layout - Icons Only as requested */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full">
         <button
           onClick={() => setActiveTab('requests')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer flex-shrink-0 ${
+          title="طلبات التوثيق"
+          aria-label="طلبات التوثيق"
+          className={`py-3.5 px-4 rounded-2xl transition-all flex items-center justify-center cursor-pointer relative ${
             activeTab === 'requests'
               ? 'bg-white text-black shadow-lg'
-              : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
+              : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white border border-white/10'
           }`}
         >
-          <ShieldCheck className="w-4 h-4" />
-          <span>طلبات التوثيق ({pendingRequests.length})</span>
+          <ShieldCheck className="w-6 h-6" />
+          {pendingRequests.length > 0 && (
+            <span className={`absolute top-2 right-4 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full ${
+              activeTab === 'requests' ? 'bg-black text-white' : 'bg-white text-black'
+            }`}>
+              {pendingRequests.length}
+            </span>
+          )}
         </button>
 
         <button
           onClick={() => setActiveTab('users')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer flex-shrink-0 ${
+          title="المستخدمين"
+          aria-label="المستخدمين"
+          className={`py-3.5 px-4 rounded-2xl transition-all flex items-center justify-center cursor-pointer relative ${
             activeTab === 'users'
               ? 'bg-white text-black shadow-lg'
-              : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
+              : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white border border-white/10'
           }`}
         >
-          <Users className="w-4 h-4" />
-          <span>قاعدة بيانات المستخدمين ({users.length})</span>
+          <Users className="w-6 h-6" />
+          {users.length > 0 && (
+            <span className={`absolute top-2 right-4 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full ${
+              activeTab === 'users' ? 'bg-black text-white' : 'bg-white text-black'
+            }`}>
+              {users.length}
+            </span>
+          )}
         </button>
 
-        {isSuperAdmin && (
-          <button
-            onClick={() => setActiveTab('admins')}
-            className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer flex-shrink-0 ${
-              activeTab === 'admins'
-                ? 'bg-white text-black shadow-lg'
-                : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            <KeyRound className="w-4 h-4" />
-            <span>طاقم الإدارة ({adminEmails.length})</span>
-          </button>
-        )}
+        <button
+          onClick={() => setActiveTab('admins')}
+          title="المدراء"
+          aria-label="المدراء"
+          className={`py-3.5 px-4 rounded-2xl transition-all flex items-center justify-center cursor-pointer relative ${
+            activeTab === 'admins'
+              ? 'bg-white text-black shadow-lg'
+              : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white border border-white/10'
+          }`}
+        >
+          <Crown className="w-6 h-6" />
+          {adminEmails.length > 0 && (
+            <span className={`absolute top-2 right-4 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full ${
+              activeTab === 'admins' ? 'bg-black text-white' : 'bg-white text-black'
+            }`}>
+              {adminEmails.length}
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* TAB 1: VERIFICATION REQUESTS */}
+      {/* TAB 1: Verification Requests */}
       {activeTab === 'requests' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Clock className="w-5 h-5 text-white" />
-              <span>الطلبات المعلقة قيد المراجعة</span>
-            </h2>
-            <span className="text-xs text-gray-400 font-mono">
-              {pendingRequests.length} طلب ينتظر الإجراء
-            </span>
-          </div>
+          
+          {/* Pending Section */}
+          <div className="space-y-4">
+            {pendingRequests.length === 0 ? (
+              <div className="p-8 rounded-3xl bg-[#12141c] border border-white/10 text-center space-y-2">
+                <ShieldCheck className="w-8 h-8 text-gray-400 mx-auto" />
+                <h3 className="text-sm font-bold text-white">لا توجد طلبات توثيق معلقة</h3>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {pendingRequests.map(req => (
+                  <div 
+                    key={req.id} 
+                    className="p-5 rounded-3xl bg-[#12141c] border border-white/15 space-y-4 shadow-xl hover:border-white/30 transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-base font-black text-white">{req.psnId}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300 border border-white/15">
+                            معلق
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-400 font-mono">{req.userEmail}</div>
+                        <div className="text-[11px] text-gray-400">الاسم: {req.displayName}</div>
+                      </div>
 
-          {pendingRequests.length === 0 ? (
-            <div className="p-12 text-center rounded-3xl bg-[#12141c] border border-white/10 space-y-2">
-              <ShieldCheck className="w-12 h-12 text-emerald-400/60 mx-auto" />
-              <div className="text-white font-bold text-base">لا توجد طلبات توثيق معلقة حالياً</div>
-              <p className="text-xs text-gray-400">أي طلب توثيق يقدمه لاعب في السوني سيظهر هنا فوراً في نفس اللحظة.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {pendingRequests.map(req => (
-                <div 
-                  key={req.id} 
-                  className="bg-[#12141c] border border-white/15 hover:border-white/30 rounded-3xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl transition-all"
-                >
-                  <div className="space-y-2 max-w-xl">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="text-lg font-black text-white font-mono bg-white/10 px-3 py-1 rounded-xl border border-white/20">
-                        {req.psnId}
-                      </span>
-                      <span className="text-xs text-gray-300 font-bold">
-                        {req.displayName}
-                      </span>
-                      <span className="text-[11px] text-gray-400 font-mono">
-                        ({req.userEmail})
-                      </span>
+                      {/* Secret Code Reference with Small Copy Button */}
+                      <div className="text-left bg-black/50 p-2.5 rounded-xl border border-white/10 flex flex-col items-end">
+                        <div className="text-[10px] text-gray-400 font-bold flex items-center gap-1">
+                          <KeyRound className="w-3 h-3 text-white" />
+                          <span>الرمز:</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          <span className="text-sm font-mono font-black text-emerald-400 tracking-wider">
+                            {req.verificationSecret}
+                          </span>
+                          <button
+                            onClick={() => handleCopySecret(req.verificationSecret, req.id)}
+                            className="p-1 rounded-md bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
+                            title="نسخ كلمة السر"
+                          >
+                            {copiedSecretId === req.id ? (
+                              <Check className="w-3 h-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="text-xs text-gray-400 leading-relaxed flex items-center gap-2 flex-wrap">
-                      <span className="text-white font-bold">تاريخ الطلب:</span>
+                    <div className="text-[11px] text-gray-400 bg-white/5 p-2.5 rounded-xl border border-white/10 flex items-center justify-between">
+                      <span>تاريخ الطلب:</span>
                       <span className="font-mono text-gray-300">{new Date(req.requestedAt).toLocaleString('ar-SA')}</span>
                     </div>
 
-                    {/* Secret Password hint for Super Admin */}
-                    {isSuperAdmin && (
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-white/10 border border-white/20 text-xs font-mono text-white">
-                        <KeyRound className="w-3.5 h-3.5 text-white" />
-                        <span>كلمة السر المتوقعة في رسالة السوني:</span>
-                        <strong className="text-white font-black text-sm bg-black/40 px-2 py-0.5 rounded border border-white/20">
-                          {req.verificationSecret}
-                        </strong>
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => openApprovalModal(req)}
+                        className="flex-1 py-2.5 px-4 rounded-xl bg-white hover:bg-gray-200 text-black font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>التحقق واعتماد التروفيات</span>
+                      </button>
+                      <button
+                        onClick={() => handleReject(req)}
+                        className="p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 transition-all cursor-pointer"
+                        title="رفض الطلب"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Past / Reviewed Requests */}
+          {pastRequests.length > 0 && (
+            <div className="space-y-4 pt-6 border-t border-white/10">
+              <h2 className="text-sm font-bold text-gray-400">سجل الطلبات السابقة ({pastRequests.length})</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {pastRequests.map(req => (
+                  <div key={req.id} className="p-4 rounded-2xl bg-[#12141c]/60 border border-white/10 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-white">{req.psnId}</span>
+                      <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
+                        req.status === 'approved' 
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      }`}>
+                        {req.status === 'approved' ? 'معتمد' : 'مرفوض'}
+                      </span>
+                    </div>
+                    <div className="text-gray-400 truncate">{req.userEmail}</div>
+                    {req.trophyStats && (
+                      <div className="flex items-center gap-2 font-mono text-[11px] text-gray-300 bg-black/40 p-1.5 rounded-lg">
+                        <span>🏆 {req.trophyStats.platinum}P</span>
+                        <span>🥇 {req.trophyStats.gold}G</span>
+                        <span>🥈 {req.trophyStats.silver}S</span>
+                        <span>🥉 {req.trophyStats.bronze}B</span>
                       </div>
                     )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-3 w-full md:w-auto">
-                    <button
-                      onClick={() => openApprovalModal(req)}
-                      className="flex-1 md:flex-initial px-5 py-2.5 rounded-xl bg-white text-black hover:bg-gray-200 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
-                    >
-                      <Check className="w-4 h-4" />
-                      <span>اعتماد وإدخال التروفيات</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleReject(req)}
-                      className="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                      title="رفض الطلب"
-                    >
-                      <X className="w-4 h-4" />
-                      <span>رفض</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Past/Reviewed Requests Section */}
-          {pastRequests.length > 0 && (
-            <div className="pt-8 space-y-4">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
-                الطلبات التي تمت معالجتها سابقاً ({pastRequests.length})
-              </h3>
-              <div className="bg-[#12141c] border border-white/10 rounded-3xl divide-y divide-white/5 overflow-hidden">
-                {pastRequests.slice(0, 10).map(req => (
-                  <div key={req.id} className="p-4 flex items-center justify-between text-xs">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-white">{req.psnId}</span>
-                        <span className="text-gray-400">({req.userEmail})</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          req.status === 'approved' 
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                        }`}>
-                          {req.status === 'approved' ? 'تم التوثيق' : 'مرفوض'}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-gray-500">
-                        {req.notes || 'لا توجد ملاحظات'}
-                      </div>
-                    </div>
-                    <div className="text-right text-[11px] text-gray-500 font-mono">
-                      {req.reviewedAt ? new Date(req.reviewedAt).toLocaleDateString('ar-SA') : '-'}
-                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
+
         </div>
       )}
 
-      {/* TAB 2: USERS DATABASE */}
+      {/* TAB 2: All Users Table */}
       {activeTab === 'users' && (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#12141c] border border-white/10 p-4 rounded-3xl">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#12141c] p-4 rounded-2xl border border-white/10">
             <div className="relative w-full sm:w-80">
-              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث بالاسم، الإيميل، معرف السوني..."
-                className="w-full bg-[#161922] border border-white/10 rounded-xl pr-10 pl-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-white/30 font-sans"
+                placeholder="بحث بالايميل أو الاسم أو معرف السوني..."
+                className="w-full pl-3 pr-9 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-white/30"
               />
             </div>
-
             <div className="text-xs text-gray-400">
-              إجمالي المستخدمين: <strong className="text-white font-mono">{filteredUsers.length}</strong>
+              المستخدمين: <strong className="text-white">{filteredUsers.length}</strong>
             </div>
           </div>
 
-          <div className="bg-[#12141c] border border-white/15 rounded-3xl overflow-hidden shadow-2xl">
+          <div className="bg-[#12141c] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
             <div className="overflow-x-auto">
               <table className="w-full text-right text-xs">
-                <thead className="bg-[#161922] border-b border-white/10 text-gray-400 font-bold">
-                  <tr>
-                    <th className="p-4">اللاعب</th>
-                    <th className="p-4">معرف السوني (PSN)</th>
-                    <th className="p-4">حالة التوثيق</th>
-                    <th className="p-4">التروفيات (P/G/S/B)</th>
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/5 text-gray-400 font-bold">
+                    <th className="p-4">المستخدم</th>
+                    <th className="p-4">معرّف السوني</th>
                     <th className="p-4">كلمة السر</th>
+                    <th className="p-4">التروفيات</th>
+                    <th className="p-4">الحالة</th>
                     <th className="p-4 text-center">الإجراءات</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {filteredUsers.map(user => {
-                    const stats = user.trophyStats;
-                    const isUserMainAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                  {filteredUsers.map(u => {
+                    const isSuper = u.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                    const isAdm = u.role === 'admin' || isSuper;
 
                     return (
-                      <tr key={user.uid} className="hover:bg-white/[0.02] transition-colors">
+                      <tr key={u.uid || u.email} className={`hover:bg-white/5 transition-colors ${u.isBanned ? 'opacity-50 bg-rose-500/5' : ''}`}>
+                        <td className="p-4 space-y-0.5">
+                          <div className="font-bold text-white flex items-center gap-1.5">
+                            <span>{u.displayName || 'لاعب'}</span>
+                            {isAdm && <Crown className="w-3.5 h-3.5 text-yellow-400" title="مدير" />}
+                          </div>
+                          <div className="font-mono text-gray-400 text-[11px]">{u.email}</div>
+                        </td>
+
                         <td className="p-4">
-                          <div className="space-y-0.5">
-                            <div className="font-bold text-white flex items-center gap-1.5">
-                              <span>{user.displayName}</span>
-                              {user.role === 'admin' && (
-                                <span className="text-[10px] bg-white text-black font-bold px-1.5 py-0.2 rounded">مدير</span>
-                              )}
-                            </div>
-                            <div className="text-[11px] text-gray-400 font-mono">{user.email}</div>
+                          {u.psnId ? (
+                            <span className="font-mono font-bold text-white bg-white/10 px-2 py-1 rounded-lg border border-white/10">
+                              {u.psnId}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">لم يحدد</span>
+                          )}
+                        </td>
+
+                        <td className="p-4">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                              {u.verificationSecret || 'KC-••••'}
+                            </span>
+                            {u.verificationSecret && (
+                              <button
+                                onClick={() => handleCopySecret(u.verificationSecret!, u.uid || u.email)}
+                                className="p-1 rounded-md bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
+                                title="نسخ كلمة السر"
+                              >
+                                {copiedSecretId === (u.uid || u.email) ? (
+                                  <Check className="w-3 h-3 text-emerald-400" />
+                                ) : (
+                                  <Copy className="w-3 h-3" />
+                                )}
+                              </button>
+                            )}
                           </div>
                         </td>
 
-                        <td className="p-4 font-mono font-bold text-white">
-                          {user.psnId || <span className="text-gray-500 font-sans text-[11px]">لم يربط بعد</span>}
+                        <td className="p-4">
+                          {u.trophyStats ? (
+                            <div className="font-mono text-[11px] text-gray-300 flex items-center gap-1.5">
+                              <span title="بلاتينيوم" className="text-white font-bold">{u.trophyStats.platinum}P</span>
+                              <span title="ذهبي" className="text-yellow-400">{u.trophyStats.gold}G</span>
+                              <span title="فضي" className="text-gray-300">{u.trophyStats.silver}S</span>
+                              <span title="برونزي" className="text-amber-600">{u.trophyStats.bronze}B</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500">0</span>
+                          )}
                         </td>
 
                         <td className="p-4">
-                          {user.isVerified ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-[11px]">
-                              <ShieldCheck className="w-3.5 h-3.5" />
-                              <span>موثق بالسوني</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 text-gray-400 border border-white/10 text-[11px]">
-                              <span>غير موثق</span>
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="p-4 font-mono">
-                          {stats ? (
-                            <div className="flex items-center gap-1.5 text-[11px]">
-                              <span className="text-white font-bold">💎{stats.platinum}</span>
-                              <span className="text-amber-300">🥇{stats.gold}</span>
-                              <span className="text-slate-300">🥈{stats.silver}</span>
-                              <span className="text-orange-300">🥉{stats.bronze}</span>
-                              <span className="text-gray-400 mr-1">Lv.{stats.level}</span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-500 text-[11px]">-</span>
-                          )}
-                        </td>
-
-                        <td className="p-4 font-mono text-white">
-                          {isSuperAdmin ? (
-                            <span className="bg-white/10 px-2 py-1 rounded border border-white/20 text-white font-bold">
-                              {user.verificationSecret || '-'}
-                            </span>
-                          ) : (
-                            <span className="text-gray-500 text-[11px]">محمي للمدير العام</span>
-                          )}
+                          <div className="flex items-center gap-1.5">
+                            {u.isVerified ? (
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
+                                موثق
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-md bg-white/5 text-gray-400">
+                                غير موثق
+                              </span>
+                            )}
+                            {u.isBanned && (
+                              <span className="px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 font-bold border border-rose-500/20">
+                                محظور
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         <td className="p-4 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => setSelectedUser(user)}
-                              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors cursor-pointer"
-                              title="عرض التفاصيل الكاملة"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-
-                            {!isUserMainAdmin && (
+                          <div className="flex items-center justify-center gap-1.5">
+                            {!isAdm ? (
                               <button
-                                onClick={() => handleToggleBan(user)}
-                                className={`px-3 py-1.5 rounded-xl font-bold text-[11px] transition-colors cursor-pointer ${
-                                  user.isBanned
-                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20'
-                                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20'
-                                }`}
+                                onClick={() => {
+                                  const res = promoteUserToAdmin(u.email);
+                                  if (res.success) {
+                                    loadData();
+                                    triggerNotice('success', res.message);
+                                  }
+                                }}
+                                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all cursor-pointer"
+                                title="تعيين كمدير"
                               >
-                                {user.isBanned ? 'فك الحظر' : 'حظر'}
+                                <Crown className="w-4 h-4" />
+                              </button>
+                            ) : !isSuper ? (
+                              <button
+                                onClick={() => handleDemoteAdmin(u.email)}
+                                className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 transition-all cursor-pointer"
+                                title="إزالة من الإدارة"
+                              >
+                                <UserMinus className="w-4 h-4" />
+                              </button>
+                            ) : null}
+
+                            {!isSuper && (
+                              <button
+                                onClick={() => handleToggleBan(u)}
+                                className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                                  u.isBanned
+                                    ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20'
+                                    : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20'
+                                }`}
+                                title={u.isBanned ? 'فك الحظر' : 'حظر اللاعب'}
+                              >
+                                {u.isBanned ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
                               </button>
                             )}
                           </div>
@@ -563,265 +573,243 @@ export function AdminDashboardView({ currentUserEmail }: AdminDashboardViewProps
         </div>
       )}
 
-      {/* TAB 3: ADMINS MANAGEMENT (Super Admin Only) */}
-      {activeTab === 'admins' && isSuperAdmin && (
-        <div className="space-y-6 max-w-3xl">
-          <div className="bg-[#12141c] border border-white/15 p-6 rounded-3xl space-y-4 shadow-xl">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-white" />
-              <span>إضافة مدير جديد للنظام</span>
+      {/* TAB 3: Admin Management with Selection Dropdown & Removal */}
+      {activeTab === 'admins' && (
+        <div className="space-y-6">
+          
+          {/* Add Admin by Selection of Registered Users */}
+          <div className="bg-[#12141c] border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl">
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <Crown className="w-4 h-4 text-yellow-400" />
+              <span>إضافة مدير باختيار أحد المستخدمين</span>
             </h2>
-            <p className="text-xs text-gray-400">
-              يمكن للمدير مراجعة طلبات توثيق السوني وإدخال التروفيات للاعبين. المدير العام الرئيسي فقط هو ({ADMIN_EMAIL}).
-            </p>
 
-            <form onSubmit={handleAddAdmin} className="flex gap-3">
-              <input
-                type="email"
-                required
-                value={newAdminEmail}
-                onChange={(e) => setNewAdminEmail(e.target.value)}
-                placeholder="example@gmail.com"
-                className="flex-1 bg-[#161922] border border-white/10 focus:border-white/40 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none font-mono"
-              />
+            <form onSubmit={handlePromoteSelectedUser} className="flex flex-col sm:flex-row gap-3">
+              <select
+                value={selectedUserToPromote}
+                onChange={(e) => setSelectedUserToPromote(e.target.value)}
+                className="flex-1 px-4 py-3 bg-black/50 border border-white/10 rounded-2xl text-xs text-white focus:outline-none focus:border-white/30 cursor-pointer"
+              >
+                <option value="" className="bg-[#12141c] text-gray-400">
+                  -- اختر مستخدم من المسجلين لترقيته إلى مدير --
+                </option>
+                {nonAdminUsers.map(u => (
+                  <option key={u.uid || u.email} value={u.email} className="bg-[#12141c] text-white">
+                    {u.displayName} ({u.email}) {u.psnId ? `- PSN: ${u.psnId}` : ''}
+                  </option>
+                ))}
+              </select>
+
               <button
                 type="submit"
-                className="px-6 py-2.5 rounded-xl bg-white text-black hover:bg-gray-200 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-md flex-shrink-0"
+                disabled={!selectedUserToPromote}
+                className="py-3 px-6 rounded-2xl bg-white hover:bg-gray-200 text-black font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
               >
-                <Plus className="w-4 h-4" />
+                <UserPlus className="w-4 h-4" />
                 <span>إضافة كمدير</span>
               </button>
             </form>
           </div>
 
-          <div className="bg-[#12141c] border border-white/15 rounded-3xl overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-white/10 font-bold text-xs text-gray-400">
-              قائمة المدراء المصرح لهم حالياً
-            </div>
+          {/* List of Current Admins with Removal */}
+          <div className="bg-[#12141c] border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl">
+            <h2 className="text-base font-bold text-white">المدراء الحاليين ({adminEmails.length})</h2>
             <div className="divide-y divide-white/5">
               {adminEmails.map(email => {
-                const isRoot = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                const isSuper = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                const matchedUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
                 return (
-                  <div key={email} className="p-4 flex items-center justify-between text-xs">
+                  <div key={email} className="py-3.5 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <Mail className="w-4 h-4 text-gray-400" />
-                      <span className="font-mono text-white font-bold">{email}</span>
-                      {isRoot && (
-                        <span className="px-2 py-0.5 rounded-full bg-white text-black font-bold text-[10px]">
-                          المدير الرئيسي للمنصة
-                        </span>
-                      )}
+                      <div className="w-9 h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-xs font-bold text-white font-mono">
+                        {email[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <span>{matchedUser?.displayName || 'مدير'}</span>
+                          {isSuper && (
+                            <span className="text-[10px] font-sans px-2 py-0.5 rounded-full bg-yellow-400/10 text-yellow-400 border border-yellow-400/20 font-bold">
+                              المدير الرئيسي
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] font-mono text-gray-400">{email}</div>
+                      </div>
                     </div>
 
-                    {!isRoot && (
+                    {!isSuper ? (
                       <button
-                        onClick={() => handleRemoveAdmin(email)}
-                        className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors cursor-pointer"
-                        title="إزالة صلاحية الإدارة"
+                        onClick={() => handleDemoteAdmin(email)}
+                        className="py-2 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                        title="إزالة من الإدارة"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <UserMinus className="w-3.5 h-3.5" />
+                        <span>إزالة من الإدارة</span>
                       </button>
+                    ) : (
+                      <span className="text-[11px] text-gray-500 font-bold px-3 py-1">ثابت</span>
                     )}
                   </div>
                 );
               })}
             </div>
           </div>
+
         </div>
       )}
 
-      {/* MODAL 1: APPROVE VERIFICATION & INPUT TROPHIES */}
+      {/* APPROVAL MODAL WITH 4 TROPHY INPUTS (WITHOUT HELP CODE AS REQUESTED) */}
       {approvingRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-[#12141c] border border-white/20 rounded-3xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-black/80 backdrop-blur-md"
+            onClick={() => setApprovingRequest(null)}
+          />
+
+          <div className="relative bg-[#12141c] border border-white/20 rounded-3xl max-w-lg w-full p-6 md:p-8 space-y-6 z-10 shadow-2xl overflow-hidden">
             
-            <div className="flex items-start justify-between border-b border-white/10 pb-4">
-              <div>
-                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
-                  مراجعة واعتماد طلب توثيق
-                </span>
-                <h3 className="text-xl font-black text-white mt-1">
-                  الحساب: {approvingRequest.psnId}
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="space-y-1">
+                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-white" />
+                  <span>اعتماد توثيق الحساب</span>
                 </h3>
-                <p className="text-xs text-gray-400 font-mono">
-                  {approvingRequest.userEmail} - {approvingRequest.displayName}
+                <p className="text-xs text-gray-400">
+                  الحساب: <strong className="font-mono text-white">{approvingRequest.psnId}</strong> ({approvingRequest.userEmail})
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => setApprovingRequest(null)}
-                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Error in modal */}
             {approvalError && (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-start gap-2">
+              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>{approvalError}</span>
+                <span className="leading-relaxed">{approvalError}</span>
               </div>
             )}
 
-            {/* Step 1: Verify Password from PSN message */}
-            <div className="space-y-2 bg-[#161922] p-4 rounded-2xl border border-white/10">
-              <label className="block text-xs font-bold text-white flex items-center gap-1.5">
-                <KeyRound className="w-4 h-4 text-white" />
-                <span>1. إدخال كلمة السر التي وصلتك من اللاعب في السوني:</span>
-              </label>
-              <input
-                type="text"
-                value={inputSecret}
-                onChange={(e) => setInputSecret(e.target.value)}
-                placeholder="مثال: KC-8492"
-                className="w-full bg-[#12141c] border border-white/20 focus:border-white rounded-xl px-4 py-2.5 text-sm text-white font-mono placeholder-gray-600 focus:outline-none"
-              />
-              <p className="text-[11px] text-gray-400">
-                يقوم النظام بالتحقق الآلي من تطابق كلمة السر هذه مع الكود السري الذي تم إنشاؤه لهذا الحساب.
-              </p>
-            </div>
-
-            {/* Step 2: Trophy Stats Input (4 fields + Level) */}
-            <div className="space-y-3 bg-[#161922] p-4 rounded-2xl border border-white/10">
-              <label className="block text-xs font-bold text-white flex items-center gap-1.5">
-                <Trophy className="w-4 h-4 text-white" />
-                <span>2. إدخال إحصائيات التروفي في حسابه بالسوني:</span>
-              </label>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {/* Platinum */}
-                <div className="space-y-1">
-                  <span className="text-[11px] font-bold text-white">بلاتينيوم 💎</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={trophyInputs.platinum}
-                    onChange={(e) => setTrophyInputs({ ...trophyInputs, platinum: parseInt(e.target.value) || 0 })}
-                    className="w-full bg-[#12141c] border border-white/20 rounded-xl p-2 text-xs text-white font-mono text-center focus:outline-none"
-                  />
-                </div>
-
-                {/* Gold */}
-                <div className="space-y-1">
-                  <span className="text-[11px] font-bold text-amber-300">ذهبي 🥇</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={trophyInputs.gold}
-                    onChange={(e) => setTrophyInputs({ ...trophyInputs, gold: parseInt(e.target.value) || 0 })}
-                    className="w-full bg-[#12141c] border border-amber-500/30 rounded-xl p-2 text-xs text-amber-200 font-mono text-center focus:outline-none"
-                  />
-                </div>
-
-                {/* Silver */}
-                <div className="space-y-1">
-                  <span className="text-[11px] font-bold text-slate-300">فضي 🥈</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={trophyInputs.silver}
-                    onChange={(e) => setTrophyInputs({ ...trophyInputs, silver: parseInt(e.target.value) || 0 })}
-                    className="w-full bg-[#12141c] border border-slate-300/30 rounded-xl p-2 text-xs text-slate-100 font-mono text-center focus:outline-none"
-                  />
-                </div>
-
-                {/* Bronze */}
-                <div className="space-y-1">
-                  <span className="text-[11px] font-bold text-orange-300">برونزي 🥉</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={trophyInputs.bronze}
-                    onChange={(e) => setTrophyInputs({ ...trophyInputs, bronze: parseInt(e.target.value) || 0 })}
-                    className="w-full bg-[#12141c] border border-orange-700/30 rounded-xl p-2 text-xs text-orange-200 font-mono text-center focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Level Input */}
-              <div className="pt-2 flex items-center justify-between gap-4">
-                <span className="text-xs font-bold text-gray-300">مستوى الحساب في السوني (Level):</span>
+            <div className="space-y-4">
+              
+              {/* Secret Code Verification Input ONLY - NO EXPECTED HELPER CODE SHOWN */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-white flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>أدخل كلمة السر المستلمة في رسالة السوني:</span>
+                </label>
                 <input
-                  type="number"
-                  min="1"
-                  max="999"
-                  value={trophyInputs.level}
-                  onChange={(e) => setTrophyInputs({ ...trophyInputs, level: parseInt(e.target.value) || 1 })}
-                  className="w-24 bg-[#12141c] border border-white/20 rounded-xl py-1.5 px-3 text-xs text-white font-mono text-center focus:outline-none"
+                  type="text"
+                  value={inputSecret}
+                  onChange={(e) => setInputSecret(e.target.value.toUpperCase())}
+                  placeholder="مثال: KC-8492"
+                  className="w-full px-4 py-3.5 bg-black/60 border border-white/15 rounded-2xl text-base font-mono font-bold text-emerald-400 placeholder-gray-600 focus:outline-none focus:border-emerald-400 text-center tracking-widest uppercase"
                 />
               </div>
+
+              {/* 4 Trophy Fields + Level */}
+              <div className="pt-3 border-t border-white/10 space-y-3">
+                <label className="block text-xs font-bold text-white flex items-center gap-1.5">
+                  <Trophy className="w-3.5 h-3.5 text-yellow-400" />
+                  <span>تحديد إحصائيات تروفيات الحساب:</span>
+                </label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  
+                  {/* Platinum */}
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/10 space-y-1">
+                    <span className="text-[11px] font-bold text-white flex items-center gap-1">
+                      <span>🏆 البلاتينيوم</span>
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={trophyInputs.platinum}
+                      onChange={(e) => setTrophyInputs({ ...trophyInputs, platinum: parseInt(e.target.value) || 0 })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 font-mono text-sm font-bold text-white focus:outline-none focus:border-white/30"
+                    />
+                  </div>
+
+                  {/* Gold */}
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/10 space-y-1">
+                    <span className="text-[11px] font-bold text-yellow-400 flex items-center gap-1">
+                      <span>🥇 الذهبي</span>
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={trophyInputs.gold}
+                      onChange={(e) => setTrophyInputs({ ...trophyInputs, gold: parseInt(e.target.value) || 0 })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 font-mono text-sm font-bold text-white focus:outline-none focus:border-white/30"
+                    />
+                  </div>
+
+                  {/* Silver */}
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/10 space-y-1">
+                    <span className="text-[11px] font-bold text-gray-300 flex items-center gap-1">
+                      <span>🥈 الفضي</span>
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={trophyInputs.silver}
+                      onChange={(e) => setTrophyInputs({ ...trophyInputs, silver: parseInt(e.target.value) || 0 })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 font-mono text-sm font-bold text-white focus:outline-none focus:border-white/30"
+                    />
+                  </div>
+
+                  {/* Bronze */}
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/10 space-y-1">
+                    <span className="text-[11px] font-bold text-amber-600 flex items-center gap-1">
+                      <span>🥉 البرونزي</span>
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={trophyInputs.bronze}
+                      onChange={(e) => setTrophyInputs({ ...trophyInputs, bronze: parseInt(e.target.value) || 0 })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 font-mono text-sm font-bold text-white focus:outline-none focus:border-white/30"
+                    />
+                  </div>
+
+                </div>
+
+                {/* Level */}
+                <div className="p-3 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">مستوى الحساب (Level):</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={trophyInputs.level || 1}
+                    onChange={(e) => setTrophyInputs({ ...trophyInputs, level: parseInt(e.target.value) || 1 })}
+                    className="w-24 bg-white/5 border border-white/10 rounded-xl px-3 py-2 font-mono text-sm font-bold text-white text-center focus:outline-none focus:border-white/30"
+                  />
+                </div>
+              </div>
+
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+            <div className="flex items-center gap-3 pt-2">
               <button
-                type="button"
+                onClick={handleConfirmApproval}
+                className="flex-1 py-3 px-5 rounded-2xl bg-white hover:bg-gray-200 text-black font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+              >
+                <Check className="w-4 h-4 stroke-[3]" />
+                <span>تأكيد المطابقة والتوثيق</span>
+              </button>
+              <button
                 onClick={() => setApprovingRequest(null)}
-                className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-bold cursor-pointer"
+                className="py-3 px-5 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-all cursor-pointer"
               >
                 إلغاء
               </button>
-
-              <button
-                type="button"
-                onClick={handleConfirmApproval}
-                className="px-6 py-2.5 rounded-xl bg-white text-black hover:bg-gray-200 text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-lg"
-              >
-                <Check className="w-4 h-4" />
-                <span>تأكيد التوثيق ونشر الحساب بالمتصدرين</span>
-              </button>
             </div>
 
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 2: USER DETAILS */}
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-[#12141c] border border-white/20 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl">
-            <div className="flex items-start justify-between border-b border-white/10 pb-4">
-              <div>
-                <h3 className="text-lg font-black text-white">{selectedUser.displayName}</h3>
-                <p className="text-xs text-gray-400 font-mono">{selectedUser.email}</p>
-              </div>
-              <button onClick={() => setSelectedUser(null)} className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-white">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between py-1.5 border-b border-white/5">
-                <span className="text-gray-400">معرف السوني:</span>
-                <span className="font-mono font-bold text-white">{selectedUser.psnId || 'غير متوفر'}</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5">
-                <span className="text-gray-400">حالة التوثيق:</span>
-                <span className="font-bold text-white">{selectedUser.isVerified ? 'موثق رسمياً' : 'غير موثق'}</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5">
-                <span className="text-gray-400">تاريخ التسجيل:</span>
-                <span className="font-mono text-gray-300">{new Date(selectedUser.createdAt).toLocaleDateString('ar-SA')}</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5">
-                <span className="text-gray-400">آخر تسجيل دخول:</span>
-                <span className="font-mono text-gray-300">{new Date(selectedUser.lastLoginAt).toLocaleString('ar-SA')}</span>
-              </div>
-              {isSuperAdmin && (
-                <div className="flex justify-between py-1.5 border-b border-white/5">
-                  <span className="text-gray-400">كلمة السر السرية:</span>
-                  <span className="font-mono font-bold text-white bg-white/10 px-2 py-0.5 rounded">{selectedUser.verificationSecret}</span>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => setSelectedUser(null)}
-              className="w-full py-2.5 rounded-xl bg-white text-black font-bold text-xs hover:bg-gray-200"
-            >
-              إغلاق
-            </button>
           </div>
         </div>
       )}

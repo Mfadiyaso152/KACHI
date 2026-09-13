@@ -1,18 +1,26 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { 
   ShieldCheck, 
   Gamepad2, 
+  KeyRound, 
   Copy, 
   Check, 
   AlertCircle, 
-  LogIn, 
-  KeyRound, 
-  Send,
   Sparkles,
-  Info
+  Info,
+  Clock,
+  Send,
+  ExternalLink,
+  ChevronLeft
 } from 'lucide-react';
 import { User } from '../lib/firebase';
-import { submitVerificationRequest, getStoredRequests, getUserSecret } from '../lib/adminStore';
+import { 
+  submitVerificationRequest, 
+  getUserSecret, 
+  getStoredRequests, 
+  DATA_SYNC_EVENT 
+} from '../lib/adminStore';
+import { VerificationRequest } from '../types';
 
 interface VerificationViewProps {
   currentUser: User | null;
@@ -20,37 +28,61 @@ interface VerificationViewProps {
   isVerified?: boolean;
 }
 
-export function VerificationView({ currentUser, onOpenAuth, isVerified }: VerificationViewProps) {
+export function VerificationView({ currentUser, onOpenAuth, isVerified = false }: VerificationViewProps) {
   const [psnId, setPsnId] = useState('');
-  const [isCopiedAccount, setIsCopiedAccount] = useState(false);
   const [isCopiedSecret, setIsCopiedSecret] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [isCopiedAdmin, setIsCopiedAdmin] = useState(false);
+  const [submittedRequest, setSubmittedRequest] = useState<VerificationRequest | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // The admin PSN account the user must add as requested
-  const adminPsnAccount = 'HamoDyMFB';
+  const adminPsn = 'KachiOfficial';
+  const userSecret = currentUser?.email ? getUserSecret(currentUser.email) : 'KC-••••';
 
-  const userEmail = currentUser?.email || '';
-  const existingReq = userEmail ? getStoredRequests().find(r => r.userEmail.toLowerCase() === userEmail.toLowerCase()) : null;
-
-  // The user's unique random secret password
-  const userSecret = userEmail ? getUserSecret(userEmail) : 'KC-XXXX';
-
-  const handleCopyAccount = () => {
-    navigator.clipboard.writeText(adminPsnAccount);
-    setIsCopiedAccount(true);
-    setTimeout(() => setIsCopiedAccount(false), 2000);
+  const checkExistingRequest = () => {
+    if (!currentUser?.email) return;
+    const reqs = getStoredRequests();
+    const myReq = reqs.find(r => r.userEmail.toLowerCase() === currentUser.email?.toLowerCase());
+    if (myReq) {
+      setSubmittedRequest(myReq);
+      if (myReq.psnId) setPsnId(myReq.psnId);
+    }
   };
 
+  useEffect(() => {
+    checkExistingRequest();
+
+    const handleSync = () => {
+      checkExistingRequest();
+    };
+
+    window.addEventListener(DATA_SYNC_EVENT, handleSync);
+    window.addEventListener('storage', handleSync);
+
+    return () => {
+      window.removeEventListener(DATA_SYNC_EVENT, handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, [currentUser?.email]);
+
   const handleCopySecret = () => {
+    if (!currentUser) {
+      onOpenAuth();
+      return;
+    }
     navigator.clipboard.writeText(userSecret);
     setIsCopiedSecret(true);
     setTimeout(() => setIsCopiedSecret(false), 2000);
   };
 
+  const handleCopyAdmin = () => {
+    navigator.clipboard.writeText(adminPsn);
+    setIsCopiedAdmin(true);
+    setTimeout(() => setIsCopiedAdmin(false), 2000);
+  };
+
   const handleVerify = (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     if (!currentUser) {
       onOpenAuth();
@@ -58,41 +90,26 @@ export function VerificationView({ currentUser, onOpenAuth, isVerified }: Verifi
     }
 
     if (!psnId.trim()) {
-      setErrorMessage('الرجاء إدخال معرف حسابك في السوني (PSN ID)');
+      setError('يرجى إدخال اسم مستخدم حسابك في شبكة بلايستيشن (PSN ID)');
       return;
     }
 
-    setErrorMessage('');
-    setIsSubmitting(true);
+    const req = submitVerificationRequest(
+      {
+        email: currentUser.email || '',
+        displayName: currentUser.displayName || currentUser.email?.split('@')[0] || 'لاعب',
+        uid: currentUser.uid
+      },
+      psnId.trim()
+    );
 
-    setTimeout(() => {
-      submitVerificationRequest(
-        {
-          email: currentUser.email || '',
-          displayName: currentUser.displayName || currentUser.email?.split('@')[0] || '',
-          uid: currentUser.uid
-        },
-        psnId.trim()
-      );
-      setIsSubmitting(false);
-      setSuccessMessage('تم إرسال طلبك بنجاح! يرجى إرسال كلمة السر الموضحة أدناه عبر رسائل السوني لحساب المنصة لإتمام التوثيق.');
-    }, 600);
+    setSubmittedRequest(req);
   };
 
+  const existingReq = submittedRequest;
+
   return (
-    <div className="max-w-3xl mx-auto space-y-8 pb-20">
-      
-      {/* Header */}
-      <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold">
-          <ShieldCheck className="w-4 h-4 text-white" />
-          <span>مركز توثيق الحسابات</span>
-        </div>
-        <h1 className="text-3xl md:text-5xl font-black text-white">توثيق حسابك في السوني</h1>
-        <p className="text-sm md:text-base text-gray-400 max-w-xl mx-auto">
-          اربط ووثق حسابك في السوني للانضمام لقائمة المتصدرين وتحديث إحصائيات تروفياتك الرسمية.
-        </p>
-      </div>
+    <div className="max-w-3xl mx-auto space-y-6 pb-20">
 
       {/* If Not Logged In Banner */}
       {!currentUser && (
@@ -105,18 +122,17 @@ export function VerificationView({ currentUser, onOpenAuth, isVerified }: Verifi
           </div>
           <button
             onClick={onOpenAuth}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white text-black hover:bg-gray-200 font-bold text-xs transition-all cursor-pointer shadow-lg flex-shrink-0"
+            className="px-6 py-2.5 rounded-2xl bg-white hover:bg-gray-100 text-black font-bold text-xs transition-all shadow-md cursor-pointer flex-shrink-0"
           >
-            <LogIn className="w-4 h-4" />
-            <span>تسجيل الدخول الآن</span>
+            تسجيل الدخول الآن
           </button>
         </div>
       )}
 
-      {/* Verification Steps Instructions */}
+      {/* 3 Step Process Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         
-        {/* Step 1: Add Admin PSN */}
+        {/* Step 1: Add Account */}
         <div className="p-5 rounded-2xl bg-[#12141c] border border-white/10 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-white bg-white/10 px-2.5 py-0.5 rounded-full border border-white/15">
@@ -126,16 +142,16 @@ export function VerificationView({ currentUser, onOpenAuth, isVerified }: Verifi
           </div>
           <h4 className="text-sm font-bold text-white">إضافة حساب المنصة</h4>
           <p className="text-xs text-gray-400 leading-relaxed">
-            أضف حساب المدير في السوني كصديق:
+            أضف حساب منصة كاتشي الرسمي على جهاز السوني:
           </p>
           <div className="flex items-center justify-between bg-black/60 p-2.5 rounded-xl border border-white/10 font-mono">
-            <span className="text-sm font-bold text-white">{adminPsnAccount}</span>
+            <span className="text-xs font-bold text-white tracking-wider">{adminPsn}</span>
             <button
-              onClick={handleCopyAccount}
+              onClick={handleCopyAdmin}
               className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
-              title="نسخ معرف السوني"
+              title="نسخ الحساب"
             >
-              {isCopiedAccount ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
+              {isCopiedAdmin ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
           </div>
         </div>
@@ -209,54 +225,45 @@ export function VerificationView({ currentUser, onOpenAuth, isVerified }: Verifi
                   type="text"
                   value={psnId}
                   onChange={(e) => setPsnId(e.target.value)}
-                  placeholder="مثال: SaudiGamer_99"
+                  placeholder="مثال: SonyPlayer_99"
                   disabled={!currentUser}
-                  className="w-full bg-[#161922] border border-white/15 focus:border-white/40 rounded-xl pr-10 pl-4 py-3 text-sm text-white font-mono placeholder-gray-500 focus:outline-none transition-all disabled:opacity-50"
+                  className="w-full pl-4 pr-10 py-3.5 rounded-2xl bg-black/50 border border-white/10 text-sm font-mono text-white placeholder-gray-500 focus:outline-none focus:border-white/30 transition-all disabled:opacity-50"
                 />
               </div>
-              {errorMessage && (
-                <p className="text-xs text-rose-400 mt-2 flex items-center gap-1 font-medium">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span>{errorMessage}</span>
-                </p>
-              )}
-              {successMessage && (
-                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 mt-3 flex items-start gap-2">
-                  <Check className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <span className="leading-relaxed">{successMessage}</span>
-                </div>
-              )}
             </div>
 
-            {/* Note about secret code */}
-            {currentUser && (
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-white">
-                  <Info className="w-4 h-4 text-white" />
-                  <span>تذكير بخصوص كلمة السر الخاصة بك:</span>
+            {error && (
+              <div className="flex items-center gap-2 text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 p-3.5 rounded-xl">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Status of pending request */}
+            {existingReq?.status === 'pending' && (
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3">
+                <Clock className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1 text-xs">
+                  <div className="font-bold text-white flex items-center gap-2">
+                    <span>طلب التوثيق قيد المراجعة</span>
+                    <span className="font-mono text-emerald-400 font-bold">({existingReq.verificationSecret})</span>
+                  </div>
+                  <p className="text-gray-400">
+                    تأكد من إرسال كلمة السر <strong className="font-mono text-emerald-400">{existingReq.verificationSecret}</strong> عبر رسائل السوني إلى الحساب <strong className="font-mono text-white">{adminPsn}</strong>.
+                  </p>
                 </div>
-                <p className="text-xs text-gray-300 leading-relaxed">
-                  كلمة السر المخصصة لك هي: <strong className="text-white font-mono bg-white/10 px-2 py-0.5 rounded">{userSecret}</strong>. 
-                  قم بإرسالها في رسالة خاصة لحساب السوني <strong className="text-white font-mono">{adminPsnAccount}</strong> حتى تتأكد الإدارة أن الحساب يعود لك حصراً.
-                </p>
               </div>
             )}
 
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3.5 rounded-xl bg-white text-black hover:bg-gray-200 font-black text-sm transition-all cursor-pointer shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+              disabled={!currentUser}
+              className="w-full py-4 rounded-2xl bg-white hover:bg-gray-100 text-black font-black text-sm transition-all duration-200 shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {isSubmitting ? (
-                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <Send className="w-4 h-4 text-black" />
-                  <span>
-                    {!currentUser ? 'تسجيل الدخول لبدء التوثيق' : 'إرسال طلب التوثيق'}
-                  </span>
-                </>
-              )}
+              <Send className="w-4 h-4" />
+              <span>
+                {existingReq?.status === 'pending' ? 'تحديث وتأكيد إرسال الطلب' : 'إرسال طلب التوثيق للإدارة'}
+              </span>
             </button>
           </form>
         )}

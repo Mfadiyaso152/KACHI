@@ -228,23 +228,6 @@ export function Sidebar({
                 </div>
               </motion.button>
 
-              {/* Terms and conditions full page link */}
-              <motion.button
-                whileHover={{ x: -4 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleNav('/terms')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-right font-medium transition-all cursor-pointer ${
-                  path === '/terms'
-                    ? 'bg-white text-black font-bold shadow-lg'
-                    : 'text-gray-200 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <FileText className="w-5 h-5" />
-                <div className="text-right">
-                  <div>شروط الاستخدام</div>
-                </div>
-              </motion.button>
-
               {/* ADMIN ONLY SECTION */}
               {isCurrentAdmin && (
                 <div className="pt-4 mt-4 border-t border-white/10 space-y-2">
